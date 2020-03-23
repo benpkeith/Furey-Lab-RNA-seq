@@ -122,6 +122,23 @@ rule fastqc:
         mv {wildcards.sample}_{wildcards.pair}_fastqc.zip {output.zip}
         """
 
+rule multiqc_raw:
+    input:
+        expand("temp/fastqc/{sample}_{pair}_fastqc.zip", \
+                sample = config["samples"], pair = ["1","2"]),
+    output:
+        html = "results/multiqc/multiqc_raw.html",
+    params:
+        configFile = config["multiqc"]["configFile"]
+    log:
+        "logs/multiqc/multiqc.log"
+    shell:
+        """
+        module load multiqc/1.7
+        multiqc -n {output.html} -c {params.configFile} results/fastqc \
+        temp/fastqc > {log}
+        """
+
 rule rseqc_tin:
     input:
         "results/rsem/{sample}.genome.sorted.bam.bai"

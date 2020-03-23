@@ -1,0 +1,8 @@
+fn_clean_exts:
+    - '.gz'
+    - '_fastq'
+
+plots_force_interactive: TRUE
+
+fastqc_config:
+    fastqc_theoretical_gc: 'fastqc_theoretical_gc_hg38_txome.txt'

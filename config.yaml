@@ -1,0 +1,31 @@
+analysis:
+  name: AZ_exercise
+
+samples:
+  - SRR5223500
+  - SRR5223505
+  - SRR5223522
+  - SRR5223543
+  - SRR5223547
+  - SRR5223570
+
+stimulation:
+  - control
+  - treated
+  - control
+  - control
+  - treated
+  - treated
+
+rsem:
+  threads: 8
+  reference: reference/hg38_rsem/rsem_hg38
+
+fastqc:
+  t: 1
+
+multiqc:
+  configFile: bin/multiqc_config_hg38.yaml
+
+rseqc:
+  modelFile: bin/hg38.HouseKeepingGenes.bed

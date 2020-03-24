@@ -1,5 +1,11 @@
+######################################
+#### analysis-specific parameters ####
+######################################
+
 analysis:
   name: AZ_exercise
+  organism: "human" #supports "human"/"mouse"
+  genomeBuild: "hg38"
 
 samples:
   - SRR5223500
@@ -17,6 +23,18 @@ stimulation:
   - treated
   - treated
 
+#############################
+#### Software parameters ####
+#############################
+
+
+star:
+#  sjdbOverhang: 74
+  cores: 8
+  genomeLoad: LoadAndRemove
+  outSAMtype: BAM Unsorted
+  quantMode: GeneCounts
+
 rsem:
   threads: 8
   reference: reference/hg38_rsem/rsem_hg38
@@ -29,3 +47,5 @@ multiqc:
 
 rseqc:
   modelFile: bin/hg38.HouseKeepingGenes.bed
+
+#genome indexes

@@ -5,6 +5,10 @@ shell.prefix("module load python/2.7.12; ")
 
 configfile: "config.yaml"
 
+#genome variables
+organism = config["analysis"]["organism"]
+genomeBuild = config["analysis"]["genomeBuild"] 
+
 # Target to run whole workflow:
 rule all:
     input:
@@ -45,6 +49,12 @@ rule split_SRA:
         gzip raw/fastq/{wildcards.sample}_1.fastq
         gzip raw/fastq/{wildcards.sample}_2.fastq
         """
+
+##################################
+#### Preprocessing - cutadapt ####
+##################################
+
+rule cutadapt
 
 ##################################################
 #### Alignment and quantification - STAR/rsem ####
@@ -104,6 +114,56 @@ rule rsem_bam_index:
         samtools index {input}
         """
 
+####################################################
+#### Alignment and quantification - STAR/salmon ####
+####################################################
+
+rule star:
+    shell:
+        """
+        star --runThreadN {params.cores} \
+        --genomeDir intermediate/star_index \
+        --readFilesIn {input.fastq_1} {input.fastq_2} \
+        --genomeLoad {params.genomeLoad} \
+        --readFilesCommand gunzip -c \
+        --outSAMtype {params.outSAMtype} \
+        --quantMode {params.quantMode} \
+        --outFileNamePrefix intermediate/star_align/{wildcards.srr_id}/{wildcards.srr_id}. > {log}
+        mv intermediate/star_align/{wildcards.srr_id}/{wildcards.srr_id}.Log.final.out \
+        logs/star_align/{wildcards.srr_id}/
+        mv intermediate/star_align/{wildcards.srr_id}/{wildcards.srr_id}.Log.progress.out \
+        logs/star_align/{wildcards.srr_id}/
+        mv intermediate/star_align/{wildcards.srr_id}/{wildcards.srr_id}.Log.out \
+        logs/star_align/{wildcards.srr_id}/
+        mv intermediate/star_align/{wildcards.srr_id}/{wildcards.srr_id}.ReadsPerGene.out.tab \
+        results/star_quant/
+        """
+
+
+# STAR --runThreadN {params.cores} \
+# --genomeDir intermediate/star_index \
+# --readFilesIn {input.fastq_1} {input.fastq_2} \
+# --genomeLoad {params.genomeLoad} \
+# --readFilesCommand gunzip -c \
+# --outSAMtype {params.outSAMtype} \
+# --quantMode {params.quantMode} \
+# --outFileNamePrefix intermediate/star_align/{wildcards.srr_id}/{wildcards.srr_id}. > {log}
+# mv intermediate/star_align/{wildcards.srr_id}/{wildcards.srr_id}.Log.final.out logs/star_align/{wildcards.srr_id}/
+# mv intermediate/star_align/{wildcards.srr_id}/{wildcards.srr_id}.Log.progress.out logs/star_align/{wildcards.srr_id}/
+# mv intermediate/star_align/{wildcards.srr_id}/{wildcards.srr_id}.Log.out logs/star_align/{wildcards.srr_id}/
+# mv intermediate/star_align/{wildcards.srr_id}/{wildcards.srr_id}.ReadsPerGene.out.tab results/star_quant/
+
+rule salmon
+
+
+# salmon quant \
+#   -l A --gcBias -p 8 \
+#   -i gencode.vXX_salmon_x.y.z \
+#   -o quants/sample1 \
+#   -1 fastq/sample1_1.fastq.gz \
+#   -2 fastq/sample1_2.fastq.gz
+
+
 #########################
 #### Quality control ####
 #########################
@@ -138,6 +198,8 @@ rule multiqc_raw:
         multiqc -n {output.html} -c {params.configFile} results/fastqc \
         temp/fastqc > {log}
         """
+
+#rule virusSeq
 
 rule rseqc_tin:
     input:
@@ -174,6 +236,15 @@ rule rseqc_geneBodyCoverage:
         mv log.txt logs/rseqc
         """
 
+rule rseqc_readDistribution
+
+
+rule rseqc_junctionSaturation
+
+
+rule rseqc_rRNAcontamination
+
+
 rule multiqc:
     input:
         expand("temp/fastqc/{sample}_{pair}_fastqc.zip", \
@@ -191,3 +262,21 @@ rule multiqc:
         module load multiqc/1.7
         multiqc -n {output.html} -c {params.configFile} . > {log}
         """
+
+#############################
+#### Post-quantification ####
+#############################
+
+rule deconvolution
+
+
+rule matrixGeneration
+
+
+rule bam_sort
+
+
+rule bam_index
+
+
+rule bamCoverage

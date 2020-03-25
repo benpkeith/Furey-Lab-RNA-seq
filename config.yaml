@@ -23,24 +23,38 @@ stimulation:
   - treated
   - treated
 
+# flags and programs.
+useSRA: FALSE # True if input consists of SRA IDs.
+quantification: salmon   # supports "salmon" and "rsem".
+countMatrix: TRUE # Generates count/TPM matrix based on input samples.
+deconvolution: TRUE # Runs deconvolution, currently set up for human colon tissue.
+
 #############################
 #### Software parameters ####
 #############################
 
-
 star:
-#  sjdbOverhang: 74
   cores: 8
   genomeLoad: LoadAndRemove
   outSAMtype: BAM Unsorted
   quantMode: GeneCounts
+  readFilesCommand: "gunzip -c"
+#  sjdbOverhang: 74
+
+salmon:
+  libType: A
+  threads: 8
+  numBootstraps: x
+  otherFlags: "--seqBias --gcBias"
 
 rsem:
   threads: 8
   reference: reference/hg38_rsem/rsem_hg38
+  otherFlags: "--paired-end --star --output-genome-bam \
+                --keep-intermediate-files  --star-gzipped-read-file"
 
 fastqc:
-  t: 1
+  threads: 1
 
 multiqc:
   configFile: bin/multiqc_config_hg38.yaml
@@ -49,3 +63,12 @@ rseqc:
   modelFile: bin/hg38.HouseKeepingGenes.bed
 
 #genome indexes
+human:
+  build:
+  samlonIndex:
+  starIndex:
+
+mouse:
+  build:
+  salmonIndex:
+  starIndex:

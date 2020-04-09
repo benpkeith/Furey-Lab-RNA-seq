@@ -1,5 +1,8 @@
 # Ben Keith
-# AstraZeneca RNA-seq pipeline
+# last updated 2020.03.25
+# Furey Lab Pipeline 2020
+# Snakemake 1.0
+
 import os
 shell.prefix("module load python/2.7.12; ")
 

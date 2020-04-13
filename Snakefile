@@ -23,6 +23,7 @@ rule all:
 #### Fetch and split SRA files ####
 ###################################
 
+
 rule fetch_SRA:
     output:
         "raw/fastq/{sample}.sra"
@@ -135,7 +136,7 @@ if config["quantification"] == "salmon":
             "temp/star_align/{sample}/{sample}.SJ.out.tab",
             "results/star_quant/{sample}.ReadsPerGene.out.tab"
         params:
-            cores  = config["star"]["cores"]
+            theads  = config["star"]["threads"]
             genomeLoad = config["star"]["genomeLoad"]
             outSAMtype = config["star"]["outSAMtype"]
             quantMode = config["star"]["quantMode"]
@@ -145,7 +146,7 @@ if config["quantification"] == "salmon":
         log:
         shell:
             """
-            star --runThreadN {params.cores} \
+            star --runThreadN {params.threads} \
               --genomeDir {params.genomeDir} \
               --readFilesIn {input.fastq_1} {input.fastq_2} \
               --genomeLoad {params.genomeLoad} \
@@ -184,6 +185,55 @@ if config["quantification"] == "salmon":
               -1 {input.fastq1} \
               -2 {input.fastq2}
             """
+
+#############################
+#### Post-quantification ####
+#############################
+
+rule deconvolution
+    input:
+    output:
+    log:
+    shell:
+
+rule matrixGeneration
+    input:
+    output:
+    log:
+    shell:
+
+rule bam_sort
+        input:
+            results = "results/STAR/{sample}.genes.results",
+            bam = "results/STAR/{sample}.genome.bam"
+        output:
+            "results/STAR/{sample}.genome.sorted.bam"
+        log:
+            "logs/samtools_sort/{sample}.log"
+        shell:
+            """
+            module load samtools/1.9
+            samtools sort {input.bam} -o {output} >{log}
+            """
+
+rule bam_index
+        input:
+            "results/STAR/{sample}.genome.sorted.bam"
+        output:
+            "results/STAR/{sample}.genome.sorted.bam.bai"
+        log:
+            "logs/samtools_index/{sample}.log"
+        shell:
+            """
+            module load samtools/1.9
+            samtools index {input}
+            """
+
+rule bamCoverage
+    input:
+    output:
+    log:
+    shell:
 
 #########################
 #### Quality control ####
@@ -292,37 +342,3 @@ rule multiqc:
         module load multiqc/1.7
         multiqc -n {output.html} -c {params.configFile} . > {log}
         """
-
-#############################
-#### Post-quantification ####
-#############################
-
-rule deconvolution
-    input:
-    output:
-    log:
-    shell:
-
-rule matrixGeneration
-    input:
-    output:
-    log:
-    shell:
-
-rule bam_sort
-    input:
-    output:
-    log:
-    shell:
-
-rule bam_index
-    input:
-    output:
-    log:
-    shell:
-
-rule bamCoverage
-    input:
-    output:
-    log:
-    shell:

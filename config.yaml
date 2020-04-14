@@ -52,10 +52,11 @@ star:
 
 # https://salmon.readthedocs.io/en/latest/salmon.html
 salmon:
-  libType: A # IU
+  libType: ISR
   threads: 8
   numBootstraps: 30
-  otherFlags: "--seqBias --gcBias --validateMappings"
+  otherFlags: "--seqBias --gcBias --validateMappings --writeUnmappedNames"
+
 
 rsem:
   threads: 8
@@ -72,13 +73,17 @@ multiqc:
 rseqc:
   modelFile: bin/hg38.HouseKeepingGenes.bed
 
-#genome indexes
+#genome indexes - !!!STAR/SALMON INDEXES BUILT FOR PRIMARLY 50BP READS!!!
+#commands use to build these indexes are in X SOP
 human:
-  build:
-  samlonIndex:
-  starIndex:
+  build: hg19
+    salmonIndex: /proj/fureylab/genomes/human/hg19_reference/hg19_salmon_1.1.0
+    starIndex: /proj/fureylab/genomes/human/hg19_reference/hg19_star_2.7.3a
+  build: hg38
+    salmonIndex: /proj/fureylab/genomes/human/hg38_reference/hg38_salmon_1.1.0
+    starIndex: /proj/fureylab/genomes/human/hg38_reference/hg38_star_2.7.3a
 
 mouse:
   build:
-  salmonIndex:
-  starIndex:
+    salmonIndex:
+    starIndex:

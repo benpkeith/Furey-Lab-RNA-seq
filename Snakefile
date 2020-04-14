@@ -127,42 +127,42 @@ if config["quantification"] == "rsem":
 ####################################################
 
 if config["quantification"] == "salmon":
-    rule star:
-        input:
-            fastq1 = "data/fastq/{sample}_1.fastq.gz"
-            fastq2 = "data/fastq/{sample}_2.fastq.gz"
-        output:
-            "temp/star_align/{sample}/{sample}.Aligned.out.bam",
-            "temp/star_align/{sample}/{sample}.SJ.out.tab",
-            "results/star_quant/{sample}.ReadsPerGene.out.tab"
-        params:
-            theads  = config["star"]["threads"]
-            genomeLoad = config["star"]["genomeLoad"]
-            outSAMtype = config["star"]["outSAMtype"]
-            quantMode = config["star"]["quantMode"]
-            readFilesCommand = config["star"]["readFilesCommand"]
-            genomeDir = config[organism][genomeBuild]["star"]
-            outFileNamePrefix = "intermediate/star_align/{sample}/{sample}."
-        log:
-        shell:
-            """
-            star --runThreadN {params.threads} \
-              --genomeDir {params.genomeDir} \
-              --readFilesIn {input.fastq_1} {input.fastq_2} \
-              --genomeLoad {params.genomeLoad} \
-              --readFilesCommand {params.readFilesCommand} \
-              --outSAMtype {params.outSAMtype} \
-              --quantMode {params.quantMode} \
-              --outFileNamePrefix {params.outFileNamePrefix} > {log}
-            mv intermediate/star_align/{wildcards.sample}/{wildcards.sample}.Log.final.out \
-              logs/star_align/{wildcards.sample}/
-            mv intermediate/star_align/{wildcards.sample}/{wildcards.sample}.Log.progress.out \
-              logs/star_align/{wildcards.sample}/
-            mv intermediate/star_align/{wildcards.sample}/{wildcards.sample}.Log.out \
-              logs/star_align/{wildcards.sample}/
-            mv intermediate/star_align/{wildcards.sample}/{wildcards.sample}.ReadsPerGene.out.tab \
-              results/star_quant/
-            """
+    # rule star:
+    #     input:
+    #         fastq1 = "data/fastq/{sample}_1.fastq.gz"
+    #         fastq2 = "data/fastq/{sample}_2.fastq.gz"
+    #     output:
+    #         "temp/star_align/{sample}/{sample}.Aligned.out.bam",
+    #         "temp/star_align/{sample}/{sample}.SJ.out.tab",
+    #         "results/star_quant/{sample}.ReadsPerGene.out.tab"
+    #     params:
+    #         theads  = config["star"]["threads"]
+    #         genomeLoad = config["star"]["genomeLoad"]
+    #         outSAMtype = config["star"]["outSAMtype"]
+    #         quantMode = config["star"]["quantMode"]
+    #         readFilesCommand = config["star"]["readFilesCommand"]
+    #         genomeDir = config[organism][genomeBuild]["star"]
+    #         outFileNamePrefix = "intermediate/star_align/{sample}/{sample}."
+    #     log:
+    #     shell:
+    #         """
+    #         star --runThreadN {params.threads} \
+    #           --genomeDir {params.genomeDir} \
+    #           --readFilesIn {input.fastq_1} {input.fastq_2} \
+    #           --genomeLoad {params.genomeLoad} \
+    #           --readFilesCommand {params.readFilesCommand} \
+    #           --outSAMtype {params.outSAMtype} \
+    #           --quantMode {params.quantMode} \
+    #           --outFileNamePrefix {params.outFileNamePrefix} > {log}
+    #         mv intermediate/star_align/{wildcards.sample}/{wildcards.sample}.Log.final.out \
+    #           logs/star_align/{wildcards.sample}/
+    #         mv intermediate/star_align/{wildcards.sample}/{wildcards.sample}.Log.progress.out \
+    #           logs/star_align/{wildcards.sample}/
+    #         mv intermediate/star_align/{wildcards.sample}/{wildcards.sample}.Log.out \
+    #           logs/star_align/{wildcards.sample}/
+    #         mv intermediate/star_align/{wildcards.sample}/{wildcards.sample}.ReadsPerGene.out.tab \
+    #           results/star_quant/
+    #         """
 
     rule salmon
         input:
@@ -170,20 +170,20 @@ if config["quantification"] == "salmon":
             fastq2 = "data/fastq/{sample}_2.fastq.gz"
         output:
         params:
-            index = config["salmon"]["index"]
+            index = config[organism][genomeBuild]["salmonIndex"]
             libType = config["salmon"]["libType"]
             threads = config["salmon"]["threads"]
+            numBootstraps = config["salmon"]["numBootstraps"]
             otherFlags = config["rsem"]["otherFlags"]
         log:
         shell:
             """
-            salmon quant \
-              --libType {params.libType} {params.otherFlags} \
-              --threads {params.threads} \
-              -i(index) gencode.vXX_salmon_x.y.z \
-              -o {output.X} \
-              -1 {input.fastq1} \
-              -2 {input.fastq2}
+            module load salmon/1.1.0
+            salmon quant --libType {params.libType} {params.otherFlags} \
+            --numBootstraps={params.numBootstraps} --threads {params.threads} \
+            --writeMappings=results/salmon/{wildcards.sample}.aligned.sam \
+            -i {params.index} -o results/salmon/{wildcards.sample} \
+            -1 {input.fastq1} -2 {input.fastq2}
             """
 
 #############################

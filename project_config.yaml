@@ -34,7 +34,7 @@ pairedEnd: TRUE # TRUE if input samples were sequenced paired-end
 #### Software parameters ####
 #############################
 
-# http://gensoft.pasteur.fr/docs/cutadapt/1.18/guide.html#paired-end
+# https://cutadapt.readthedocs.io/en/stable/
 cutadapt: # Current hard coded for Illumina TruSeq adapters. Modify -a/-A for other adapters
   a: AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC
   A: AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT
@@ -45,7 +45,7 @@ cutadapt: # Current hard coded for Illumina TruSeq adapters. Modify -a/-A for ot
 star:
   threads: 8
   genomeLoad: LoadAndRemove
-  outSAMtype: BAM
+  outSAMtype: "BAM SortedByCoordinate"
   quantMode: GeneCounts
   readFilesCommand: "gunzip -c"
   sjdbOverhang: 49

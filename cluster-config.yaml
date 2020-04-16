@@ -1,0 +1,19 @@
+__default__:
+  mem: 15G
+  time: 3:0:0
+  threads: 1
+  job: {rule}_{wildcards.sample}
+
+# {
+#     "__default__":
+#     {
+#         "mem": "15G",
+#         "time": "5:0:0"
+#     },
+#     "rsem":
+#     {
+#         "mem": "100G",
+#         "time": "10:0:0",
+#         "n": "8"
+#     }
+# }

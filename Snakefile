@@ -15,9 +15,15 @@ genomeBuild = config["analysis"]["genomeBuild"]
 # Target to run whole workflow:
 rule all:
     input:
-        expand("results/rsem/{sample}.genome.sorted.bam.bai", \
-                                        sample = config["samples"]),
         "results/multiqc/multiqc.html"
+
+rule quantification:
+    input:
+        expand("results/{sample}/salmon/quant.sf", sample=config["samples"]),
+        expand("results/star/{sample}/{sample}.Aligned.sortedByCoord.out.bam",
+                                                     sample=config["samples"])
+    output:
+        touch("temp/starSalmon_run.flag")
 
 ###################################-
 #### Fetch and split SRA files ####
@@ -32,7 +38,7 @@ rule prefetch:
     shell:
         """
         module load sratoolkit/2.10.1
-        prefetch -L 5 -o raw/fastq/{wildcards.sample}.sra {wildcards.sample}
+        prefetch -L 5 -o {output} {wildcards.sample}
         """
 
 rule fastq_dump:
@@ -60,15 +66,15 @@ rule fastq_dump:
 
 rule cutadapt:
     input:
-        fastq1 = "data/fastq/{sample}_1.fastq.gz",
-        fastq2 = "data/fastq/{sample}_2.fastq.gz"
+        fastq1 = "raw/fastq/{sample}_1.fastq.gz",
+        fastq2 = "raw/fastq/{sample}_2.fastq.gz"
     output:
-        trimmed1 = "data/fastq/{sample}_1.fastq.trimmed.gz",
-        trimmed2 = "data/fastq/{sample}_2.fastq.trimmed.gz"
+        trimmed1 = "raw/fastq/{sample}_1.fastq.trimmed.gz",
+        trimmed2 = "raw/fastq/{sample}_2.fastq.trimmed.gz"
     params:
-        a = config["cutadapt"]["a"]
-        A = config["cutadapt"]["A"]
-        qualityCutoff = config["cutadapt"]["qualityCutoff"]
+        a = config["cutadapt"]["a"],
+        A = config["cutadapt"]["A"],
+        qualityCutoff = config["cutadapt"]["qualityCutoff"],
         minimumLength = config["cutadapt"]["minimumLength"]
     log:
         "results/{sample}/logs/cutadapt.log"
@@ -76,8 +82,9 @@ rule cutadapt:
         """
         module load cutadapt/2.9
         cutadapt -a {params.a} -A {params.A} \
-        --quality-cutoff {params.qualityCutoff} --minimum-length {params.minimumLength} \
-        -o {output.trimmed1} -p {output.trimmed2} \
+          --quality-cutoff {params.qualityCutoff} \
+          --minimum-length {params.minimumLength} \
+          -o {output.trimmed1} -p {output.trimmed2} \
         {input.fastq1} {input.fastq2}
         """
 
@@ -146,19 +153,20 @@ rule cutadapt:
 if config["quantification"] == "salmon":
     rule star:
         input:
-            fastq1 = "data/fastq/{sample}_1.fastq.trimmed.gz",
-            fastq2 = "data/fastq/{sample}_2.fastq.trimmed.gz"
+            fastq1 = expand("raw/fastq/{sample}_1.fastq.trimmed.gz",
+                             sample = config["samples"]),
+            fastq2 = "raw/fastq/{sample}_2.fastq.trimmed.gz"
         output:
             "results/star/{sample}/{sample}.Aligned.sortedByCoord.out.bam",
             "results/star/{sample}/{sample}.SJ.out.tab"
         params:
-            theads  = config["star"]["threads"]
-            genomeLoad = config["star"]["genomeLoad"]
-            outSAMtype = config["star"]["outSAMtype"]
-            quantMode = config["star"]["quantMode"]
-            readFilesCommand = config["star"]["readFilesCommand"]
-            genomeDir = config[organism][genomeBuild]["starIndex"]
-            sjdbOverhang = config["star"]["sjdbOverhang"]
+            threads  = config["star"]["threads"],
+            genomeLoad = config["star"]["genomeLoad"],
+            outSAMtype = config["star"]["outSAMtype"],
+            quantMode = config["star"]["quantMode"],
+            readFilesCommand = config["star"]["readFilesCommand"],
+            genomeDir = config[genomeBuild]["starIndex"],
+            sjdbOverhang = config["star"]["sjdbOverhang"],
             outFileNamePrefix = "results/{sample}/star/{sample}."
         log:
             "results/{sample}/logs/star/star.log"
@@ -166,28 +174,31 @@ if config["quantification"] == "salmon":
             """
             module load star/2.7.3a
             star --runThreadN {params.threads} --sjdbOverhang {params.sjdbOverhang} \
-            --genomeDir {params.genomeDir} --readFilesCommand {params.readFilesCommand} \
-            --outSAMtype {params.outSAMtype} --outSAMunmapped Within \
-            --outFileNamePrefix {params.outFileNamePrefix} \
-            --readFilesIn {input.fastq1} {input.fastq2}
-            mv {params.outFileNamePrefix}.Log.final.out results/{sample}/logs/star/
-            mv {params.outFileNamePrefix}.Log.progress.out results/{sample}/logs/star/
-            mv {params.outFileNamePrefix}.Log.out results/{sample}/logs/star/
+              --genomeDir {params.genomeDir} --readFilesCommand {params.readFilesCommand} \
+              --outSAMtype {params.outSAMtype} --outSAMunmapped Within \
+              --outFileNamePrefix {params.outFileNamePrefix} \
+              --readFilesIn {input.fastq1} {input.fastq2}
+            mv {params.outFileNamePrefix}.Log.final.out \
+              results/{wildcards.sample}/logs/star/
+            mv {params.outFileNamePrefix}.Log.progress.out \
+              results/{wildcards.sample}/logs/star/
+            mv {params.outFileNamePrefix}.Log.out \
+              results/{wildcards.sample}/logs/star/
             """
 
-    rule salmon
+    rule salmon:
         input:
-            fastq1 = "data/fastq/{sample}_1.fastq.trimmed.gz",
-            fastq2 = "data/fastq/{sample}_2.fastq.trimmed.gz"
+            fastq1 = expand("raw/fastq/{sample}_1.fastq.trimmed.gz",
+                             sample = config["samples"]),
+            fastq2 = "raw/fastq/{sample}_2.fastq.trimmed.gz"
         output:
-            "results/{sample}/salmon/quant.sf",
-            "results/{sample}/salmon/{sample}.aligned.sam"
+            "results/{sample}/salmon/quant.sf"
         params:
-            index = config[organism][genomeBuild]["salmonIndex"]
-            libType = config["salmon"]["libType"]
-            threads = config["salmon"]["threads"]
-            numBootstraps = config["salmon"]["numBootstraps"]
-            otherFlags = config["rsem"]["otherFlags"]
+            index = config[genomeBuild]["salmonIndex"],
+            libType = config["salmon"]["libType"],
+            threads = config["salmon"]["threads"],
+            numBootstraps = config["salmon"]["numBootstraps"],
+            otherFlags = config["rsem"]["otherFlags"],
             outDir = "results/{sample}/salmon"
         log:
             "results/{sample}/logs/salmon.log"
@@ -195,11 +206,12 @@ if config["quantification"] == "salmon":
             """
             module load salmon/1.1.0
             salmon quant --libType {params.libType} {params.otherFlags} \
-            --numBootstraps={params.numBootstraps} --threads {params.threads} \
-            --writeMappings={params.outDir}/{wildcards.sample}.aligned.sam \
-            -i {params.index} -o {params.outDir} \
-            -1 {input.fastq1} -2 {input.fastq2}
-            mv {params.outDir}/logs/salmon_quant.log results/{sample}/logs
+              --numBootstraps={params.numBootstraps} --threads {params.threads} \
+              --writeMappings={params.outDir}/{wildcards.sample}.aligned.sam \
+              -i {params.index} -o {params.outDir} \
+              -1 {input.fastq1} -2 {input.fastq2}
+            mv {params.outDir}/logs/salmon_quant.log \
+              results/{wildcards.sample}/logs
             rm -r {params.outDir}/logs
             """
 
@@ -256,19 +268,19 @@ if config["quantification"] == "salmon":
 #### Quality control ####
 #########################
 
-# rule fastqc:
-#     input:
-#         "raw/fastq/{sample}_{pair}.fastq.gz"
-#     output:
-#         html = "results/fastqc/{sample}_{pair}_fastqc.html",
-#         zip = "temp/fastqc/{sample}_{pair}_fastqc.zip"
-#     shell:
-#         """
-#         module load fastqc/0.11.8
-#         fastqc {input} -q -o .
-#         mv {wildcards.sample}_{wildcards.pair}_fastqc.html {output.html}
-#         mv {wildcards.sample}_{wildcards.pair}_fastqc.zip {output.zip}
-#         """
+rule fastqc:
+    input:
+        "raw/fastq/{sample}_{pair}.fastq.gz"
+    output:
+        html = "results/fastqc/{sample}_{pair}_fastqc.html",
+        zip = "temp/fastqc/{sample}_{pair}_fastqc.zip"
+    shell:
+        """
+        module load fastqc/0.11.8
+        fastqc {input} -q -o .
+        mv {wildcards.sample}_{wildcards.pair}_fastqc.html {output.html}
+        mv {wildcards.sample}_{wildcards.pair}_fastqc.zip {output.zip}
+        """
 #
 # rule multiqc_raw:
 #     input:
@@ -342,20 +354,20 @@ if config["quantification"] == "salmon":
 #     log:
 #     shell:
 #
-# rule multiqc:
-#     input:
-#         expand("temp/fastqc/{sample}_{pair}_fastqc.zip", \
-#                 sample = config["samples"], pair = ["1","2"]),
-#         "temp/rseqc_coverage_done.flag"
-#     output:
-#         html = "results/multiqc/multiqc.html",
-#         data = directory("results/multiqc/multiqc_data")
-#     params:
-#         configFile = config["multiqc"]["configFile"]
-#     log:
-#         "results/{sample}/logs/multiqc/multiqc.log"
-#     shell:
-#         """
-#         module load multiqc/1.7
-#         multiqc -n {output.html} -c {params.configFile} . > {log}
-#         """
+rule multiqc:
+    input:
+        expand("temp/fastqc/{sample}_{pair}_fastqc.zip", \
+                sample = config["samples"], pair = ["1","2"]),
+        "temp/starSalmon_run.flag"
+    output:
+        html = "results/multiqc/multiqc.html",
+        data = directory("results/multiqc/multiqc_data")
+    params:
+        configFile = config["multiqc"]["configFile"]
+    log:
+        "results/QC/logs/multiqc/multiqc.log"
+    shell:
+        """
+        module load multiqc/1.7
+        multiqc -n {output.html} -c {params.configFile} . > {log}
+        """

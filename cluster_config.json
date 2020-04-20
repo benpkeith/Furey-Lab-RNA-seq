@@ -3,8 +3,10 @@
     {
         "mem": "15G",
         "time": "5:0:0",
+        "ntasks": "1",
         "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
-        "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err"
+        "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",
+        "jobname": "{rule}"
     },
     "cutadapt":
     {
@@ -12,7 +14,8 @@
         "time": "5:0:0",
         "ntasks": "8",
         "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
-        "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err"
+        "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",
+        "jobname": "{rule}"
     },
     "rsem":
     {
@@ -20,7 +23,8 @@
         "time": "10:0:0",
         "ntasks": "8",
         "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
-        "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err"
+        "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",
+        "jobname": "{rule}"
     },
     "star":
     {
@@ -28,7 +32,8 @@
         "time": "5:0:0",
         "ntasks": "8",
         "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
-        "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err"
+        "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",
+        "jobname": "{rule}"
     },
     "salmon":
     {
@@ -36,6 +41,16 @@
         "time": "5:0:0",
         "ntasks": "8",
         "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
-        "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err"
+        "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",
+        "jobname": "{rule}"
+    },
+    "multiqc":
+    {
+        "mem": "10G",
+        "time": "5:0:0",
+        "ntasks": "1",
+        "output": "results/QC/logs/{rule}_SLURM.out",
+        "err": "results/QC/logs/{rule}_SLURM.err",
+        "jobname": "{rule}"
     }
 }

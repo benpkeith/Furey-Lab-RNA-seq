@@ -1,0 +1,41 @@
+{
+    "__default__":
+    {
+        "mem": "15G",
+        "time": "5:0:0",
+        "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
+        "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err"
+    },
+    "cutadapt":
+    {
+        "mem": "25G",
+        "time": "5:0:0",
+        "ntasks": "8",
+        "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
+        "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err"
+    },
+    "rsem":
+    {
+        "mem": "100G",
+        "time": "10:0:0",
+        "ntasks": "8",
+        "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
+        "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err"
+    },
+    "star":
+    {
+        "mem": "50G",
+        "time": "5:0:0",
+        "ntasks": "8",
+        "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
+        "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err"
+    },
+    "salmon":
+    {
+        "mem": "25G",
+        "time": "5:0:0",
+        "ntasks": "8",
+        "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
+        "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err"
+    }
+}

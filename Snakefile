@@ -72,7 +72,6 @@ rule cutadapt:
         minimumLength = config["cutadapt"]["minimumLength"]
     log:
         "results/{sample}/logs/cutadapt.log"
-    resources: threads=4, mem=25GB
     shell:
         """
         module load cutadapt/2.9
@@ -163,7 +162,6 @@ if config["quantification"] == "salmon":
             outFileNamePrefix = "results/{sample}/star/{sample}."
         log:
             "results/{sample}/logs/star/star.log"
-        resources: threads=8, mem=25GB
         shell:
             """
             module load star/2.7.3a
@@ -193,7 +191,6 @@ if config["quantification"] == "salmon":
             outDir = "results/{sample}/salmon"
         log:
             "results/{sample}/logs/salmon.log"
-        resources: threads=8, mem=25GB
         shell:
             """
             module load salmon/1.1.0

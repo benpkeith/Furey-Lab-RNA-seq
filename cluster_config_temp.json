@@ -9,7 +9,7 @@
     {
         "mem": "25G",
         "time": "5:0:0",
-        "ntasks": "8"
+        "ntasks": "1"
     },
     "rsem":
     {
@@ -21,13 +21,13 @@
     {
         "mem": "50G",
         "time": "5:0:0",
-        "ntasks": "8"
+        "ntasks": "1"
     },
     "salmon":
     {
-        "mem": "25G",
+        "mem": "15G",
         "time": "5:0:0",
-        "ntasks": "8"
+        "ntasks": "1"
     },
     "multiqc":
     {

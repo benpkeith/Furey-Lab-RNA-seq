@@ -12,7 +12,7 @@
     {
         "mem": "25G",
         "time": "5:0:0",
-        "ntasks": "8",
+        "ntasks": "1",
         "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
         "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",
         "jobname": "{rule}"
@@ -21,7 +21,7 @@
     {
         "mem": "100G",
         "time": "10:0:0",
-        "ntasks": "8",
+        "ntasks": "1",
         "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
         "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",
         "jobname": "{rule}"
@@ -30,7 +30,7 @@
     {
         "mem": "50G",
         "time": "5:0:0",
-        "ntasks": "8",
+        "ntasks": "1",
         "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
         "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",
         "jobname": "{rule}"
@@ -39,7 +39,7 @@
     {
         "mem": "25G",
         "time": "5:0:0",
-        "ntasks": "8",
+        "ntasks": "1",
         "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
         "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",
         "jobname": "{rule}"
@@ -49,8 +49,8 @@
         "mem": "10G",
         "time": "5:0:0",
         "ntasks": "1",
-        "output": "results/QC/logs/{rule}_SLURM.out",
-        "err": "results/QC/logs/{rule}_SLURM.err",
+        "output": "results/multiqc/{rule}_SLURM.out",
+        "err": "results/multiqc/{rule}_SLURM.err",
         "jobname": "{rule}"
     }
 }

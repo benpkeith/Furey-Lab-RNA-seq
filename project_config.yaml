@@ -72,12 +72,14 @@ hg19:
   rsemIndex: /proj/fureylab/genomes/human/hg19_reference/hg19_star_2.7.3a
   rseqcModel: bin/hg19.HouseKeepingGenes.bed
   multiqcConfig: bin/multiqc_config_hg19.yaml
+  featureFile: Homo_sapiens.GRCh37.87.gtf.gz
 hg38:
   salmonIndex: /proj/fureylab/genomes/human/hg38_reference/hg38_salmon_1.1.0
   starIndex: /proj/fureylab/genomes/human/hg38_reference/hg38_star_2.7.3a
   rsemIndex: /proj/fureylab/genomes/human/hg38_reference/hg38_star_2.7.3a
   rseqcModel: bin/hg38.HouseKeepingGenes.bed
   multiqcConfig: bin/multiqc_config_hg38.yaml
+  featureFile: Homo_sapiens.GRCh38.99.gtf.gz
 
 # mouse:
 #   build:

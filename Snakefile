@@ -23,7 +23,9 @@ rule quantification:
     input:
         expand("results/{sample}/salmon/quant.sf", sample=config["samples"]),
         expand("results/{sample}/star/{sample}.Aligned.sortedByCoord.out.bam",
-                                                     sample=config["samples"])
+                                                   sample=config["samples"]),
+        expand("results/{sample}/salmon/{sample}.aligned.sorted.bam",
+                                                   sample=config["samples"])
     output:
         touch("temp/starSalmon_run.flag")
 
@@ -182,6 +184,7 @@ if config["quantification"] == "salmon":
             star --runThreadN {params.threads} --sjdbOverhang {params.sjdbOverhang} \
               --genomeDir {params.genomeDir} --readFilesCommand {params.readFilesCommand} \
               --outSAMtype {params.outSAMtype} --outSAMunmapped Within \
+              --quantMode {params.quantMode} \
               --outFileNamePrefix {params.outFileNamePrefix} \
               --readFilesIn {input.fastq1} {input.fastq2} \
               > {log}
@@ -198,7 +201,8 @@ if config["quantification"] == "salmon":
             fastq1 = "temp/{sample}/fastq/{sample}_1.fastq.trimmed.gz",
             fastq2 = "temp/{sample}/fastq/{sample}_2.fastq.trimmed.gz"
         output:
-            "results/{sample}/salmon/quant.sf"
+            "results/{sample}/salmon/quant.sf",
+            "temp/{sample}/salmon/{sample}.aligned.sam"
         params:
             index = config[genomeBuild]["salmonIndex"],
             libType = config["salmon"]["libType"],
@@ -206,21 +210,45 @@ if config["quantification"] == "salmon":
             numBootstraps = config["salmon"]["numBootstraps"],
             otherFlags = config["salmon"]["otherFlags"],
             outDir = "results/{sample}/salmon"
+            tmpDir = "temp/{sample}/salmon"
         log:
             "results/{sample}/logs/salmon.log"
         shell:
             """
-            mkdir -p results/{wildcards.sample}/salmon
+            mkdir -p {params.outDir}
+            mkdir -p {params.tmpDir}
             module load salmon/1.1.0
             salmon quant --libType {params.libType} {params.otherFlags} \
               --numBootstraps={params.numBootstraps} --threads {params.threads} \
-              --writeMappings={params.outDir}/{wildcards.sample}.aligned.sam \
+              --writeMappings={params.tmpDir}/{wildcards.sample}.aligned.sam \
               -i {params.index} -o {params.outDir} \
               -1 {input.fastq1} -2 {input.fastq2} \
               > {log}
             mv {params.outDir}/logs/salmon_quant.log \
               results/{wildcards.sample}/logs
             rm -r {params.outDir}/logs
+            """
+
+    rule salmon_sam:
+        input:
+            "temp/{sample}/salmon/{sample}.aligned.sam"
+        output:
+            "results/{sample}/salmon/{sample}.aligned.sorted.bam",
+            "results/{sample}/salmon/{sample}.aligned.sorted.bam.bai"
+        params:
+            outDir = "results/{sample}/salmon"
+            tmpDir = "temp/{sample}/salmon"
+        log:
+            "results/{sample}/logs/salmon_sam.log"
+        shell:
+            """
+            module load samtools/1.9
+            samtools view -S -b {params.tmpDir}/{wildcards.sample}.aligned.sam \
+              -o {params.tmpDir}/{wildcards.sample}.aligned.bam > {log}
+            samtools sort {params.tmpDir}/{wildcards.sample}.aligned.bam \
+              -o {params.outDir}/{wildcards.sample}.aligned.sorted.bam >> {log}
+            samtools index {params.outDir}/{wildcards.sample}.aligned.sorted.bam \
+              >> {log}
             """
 
 #############################

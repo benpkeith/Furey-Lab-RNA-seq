@@ -188,6 +188,8 @@ if config["quantification"] == "salmon":
               --outFileNamePrefix {params.outFileNamePrefix} \
               --readFilesIn {input.fastq1} {input.fastq2} \
               > {log}
+			samtools index \
+			  results/{wildcards.sample}/star/{wildcards.sample}.Aligned.sortedByCoord.out.bam
             mv {params.outFileNamePrefix}Log.final.out \
               results/{wildcards.sample}/logs/star/
             mv {params.outFileNamePrefix}Log.progress.out \

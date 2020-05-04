@@ -268,34 +268,7 @@ if config["quantification"] == "salmon":
 #     output:
 #     log:
 #     shell:
-#
-# rule bam_sort
-#         input:
-#             results = "results/STAR/{sample}.genes.results",
-#             bam = "results/STAR/{sample}.genome.bam"
-#         output:
-#             "results/STAR/{sample}.genome.sorted.bam"
-#         log:
-#             "results/{sample}/logs/samtools_sort/{sample}.log"
-#         shell:
-#             """
-#             module load samtools/1.9
-#             samtools sort {input.bam} -o {output} >{log}
-#             """
-#
-# rule bam_index
-#         input:
-#             "results/STAR/{sample}.genome.sorted.bam"
-#         output:
-#             "results/STAR/{sample}.genome.sorted.bam.bai"
-#         log:
-#             "results/{sample}/logs/samtools_index/{sample}.log"
-#         shell:
-#             """
-#             module load samtools/1.9
-#             samtools index {input}
-#             """
-#
+
 # rule bamCoverage
 #     input:
 #     output:

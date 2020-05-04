@@ -18,31 +18,31 @@ stimulation:
   - control
   - treated
 
-### 
+###
 # FLAGS AND OPTIONS
 ###
 
-useSRA: FALSE 
+useSRA: FALSE
 # True if input consists of SRA IDs.
 
-quantification: salmon  
+quantification: salmon
 # supports "salmon" and "rsem".
 
-countMatrix: TRUE 
+countMatrix: TRUE
 # Generates count/TPM matrix based on input samples.
 
-deconvolution: TRUE 
+deconvolution: TRUE
 # Runs deconvolution, currently set up for human colon tissue.
 
-pairedEnd: TRUE 
+pairedEnd: TRUE
 # TRUE if input samples were sequenced paired-end
 
-tx2geneSymbols: TRUE 
-# Regarding the transcript to gene level conversion step. 
-# Instead of ensembl gene ID names, HGNC gene symbols will be 
-# generated instead. NOTE: This is not available for all genomes, 
-# and so is off by default. Check the software parameters section 
-# of the snakemake project_config.yaml file to see whether the HGNC 
+tx2geneSymbols: TRUE
+# Regarding the transcript to gene level conversion step.
+# Instead of ensembl gene ID names, HGNC gene symbols will be
+# generated instead. NOTE: This is not available for all genomes,
+# and so is off by default. Check the software parameters section
+# of the snakemake project_config.yaml file to see whether the HGNC
 # tx2gene file is available for the genome of interest.
 
 #############################
@@ -93,16 +93,17 @@ hg19:
   salmonIndex: /proj/fureylab/genomes/human/hg19_reference/hg19_salmon_1.1.0
   starIndex: /proj/fureylab/genomes/human/hg19_reference/hg19_star_2.7.3a
   rsemIndex: /proj/fureylab/genomes/human/hg19_reference/hg19_star_2.7.3a
-  rseqcModel: bin/hg19.HouseKeepingGenes.bed
+  rseqcModel: /proj/fureylab/genomes/human/hg19_reference/houseKeepingGenes/hg19.HouseKeepingGenes.bed
   multiqcConfig: bin/multiqc_config_hg19.yaml
-  tx2gene_ensembl: /proj/fureylab/genomes/human/hg19_reference/RNA_annotation/tx2gene.GRCh37.ensembl.csv
+  tx2gene_ensembl: /proj/fureylab/genomes/human/hg19_reference/RNA_annotation/tx2gene.GRCh37.ENSEMBL.csv
+  tx2gene_symbol: /proj/fureylab/genomes/human/hg19_reference/RNA_annotation/tx2gene.GRCh37.HGNC.csv
 hg38:
   salmonIndex: /proj/fureylab/genomes/human/hg38_reference/hg38_salmon_1.1.0
   starIndex: /proj/fureylab/genomes/human/hg38_reference/hg38_star_2.7.3a
   rsemIndex: /proj/fureylab/genomes/human/hg38_reference/hg38_star_2.7.3a
-  rseqcModel: bin/hg38.HouseKeepingGenes.bed
+  rseqcModel: /proj/fureylab/genomes/human/hg38_reference/houseKeepingGenes/hg38.HouseKeepingGenes.bed
   multiqcConfig: bin/multiqc_config_hg38.yaml
-  tx2gene_ensembl: /proj/fureylab/genomes/human/hg38_reference/RNA_annotation/tx2gene.GRCh38.ensembl.csv
+  tx2gene_ensembl: /proj/fureylab/genomes/human/hg38_reference/RNA_annotation/tx2gene.GRCh38.ENSEMBL.csv
   tx2gene_symbol: /proj/fureylab/genomes/human/hg38_reference/RNA_annotation/tx2gene.GRCh38.HGNC.csv
 
 # mouse:

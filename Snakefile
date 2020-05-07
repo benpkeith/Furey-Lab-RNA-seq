@@ -30,6 +30,16 @@ rule quantification:
     output:
         touch("temp/starSalmon_run.flag")
 
+rule QC:
+    input:
+        "temp/starSalmon_run.flag",
+        "results/{sample}/QC/qualimap/{sample}.rnaseq/{sample}.rnaseq.html",
+        "results/{sample}/QC/qualimap/{sample}.bamqc/{sample}.bamqc.html",
+        "results/{sample}/QC/rseqc/{sample}.Aligned.sortedByCoord.out.summary.txt",
+        "results/{sample}/QC/rseqc/{sample}.junctionSaturation_plot.pdf"
+    output:
+        touch("temp/QC_complete.flag")
+
 ###################################-
 #### Fetch and split SRA files ####
 ###################################
@@ -400,14 +410,7 @@ rule QM_rnaseq:
 os.makedirs("results/multiqc", exist_ok=True)
 rule multiqc:
     input:
-        expand("results/{sample}/QC/fastqc/{sample}_{pair}_fastqc.zip", \
-                sample = config["samples"], pair = ["1","2"]),
-        "temp/starSalmon_run.flag",
-        expand("results/{sample}/QC/qualimap/{sample}.rnaseq/{sample}.rnaseq.html", \
-                sample = config["samples"]),
-        "results/{sample}/QC/qualimap/{sample}.bamqc/{sample}.bamqc.html",
-        "results/{sample}/QC/rseqc/{sample}.Aligned.sortedByCoord.out.summary.txt",
-        "results/{sample}/QC/rseqc/{sample}.junctionSaturation_plot.pdf"
+        "temp/QC_complete.flag"
     output:
         html = "results/multiqc/multiqc.html",
         data = directory("results/multiqc/multiqc_data")
@@ -430,7 +433,7 @@ rule multiqc:
 rule name_clean:
     input:
         "results/multiqc/multiqc.html",
-        "results/{sample}}/{sample}.salmon"),
+        "results/{sample}}/{sample}.salmon",
         "results/{sample}/QC/qualimap/{sample}.rnaseq",
         "results/{sample}/QC/qualimap/{sample}.bamqc"
     output:

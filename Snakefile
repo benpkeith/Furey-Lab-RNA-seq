@@ -164,7 +164,7 @@ if config["quantification"] == "salmon":
             fastq1 = "temp/{sample}/fastq/{sample}_1.fastq.trimmed.gz",
             fastq2 = "temp/{sample}/fastq/{sample}_2.fastq.trimmed.gz"
         output:
-            "results/{sample}/star/{sample}.Aligned.sortedByCoord.out.bam",
+            "temp/{sample}.Aligned.sortedByCoord.out.bam",
             "results/{sample}/star/{sample}.SJ.out.tab"
         params:
             threads  = config["star"]["threads"],
@@ -174,7 +174,8 @@ if config["quantification"] == "salmon":
             readFilesCommand = config["star"]["readFilesCommand"],
             genomeDir = config[genomeBuild]["starIndex"],
             sjdbOverhang = config["star"]["sjdbOverhang"],
-            outFileNamePrefix = "results/{sample}/star/{sample}."
+            outFileNamePrefix = "results/{sample}/star/{sample}.",
+            featureFile = config[genomeBuild]["featureFile"]
         log:
             "results/{sample}/logs/star/star.log"
         shell:
@@ -188,8 +189,13 @@ if config["quantification"] == "salmon":
               --outFileNamePrefix {params.outFileNamePrefix} \
               --readFilesIn {input.fastq1} {input.fastq2} \
               > {log}
-			samtools index \
-			  results/{wildcards.sample}/star/{wildcards.sample}.Aligned.sortedByCoord.out.bam
+            samtools index \
+              results/{wildcards.sample}/star/{wildcards.sample}.Aligned.sortedByCoord.out.bam
+
+            cp results/{wildcards.sample}/star/{wildcards.sample}.Aligned.sortedByCoord.out.bam* \
+              temp
+            cp {params.featureFile} temp; gunzip temp/*gtf.gz
+
             mv {params.outFileNamePrefix}Log.final.out \
               results/{wildcards.sample}/logs/star/
             mv {params.outFileNamePrefix}Log.progress.out \
@@ -203,7 +209,7 @@ if config["quantification"] == "salmon":
             fastq1 = "temp/{sample}/fastq/{sample}_1.fastq.trimmed.gz",
             fastq2 = "temp/{sample}/fastq/{sample}_2.fastq.trimmed.gz"
         output:
-            "results/{sample}/salmon/quant.sf",
+            "results/{sample}/{sample}.salmon/quant.sf",
             "temp/{sample}/salmon/{sample}.aligned.sam"
         params:
             index = config[genomeBuild]["salmonIndex"],
@@ -211,7 +217,7 @@ if config["quantification"] == "salmon":
             threads = config["salmon"]["threads"],
             numBootstraps = config["salmon"]["numBootstraps"],
             otherFlags = config["salmon"]["otherFlags"],
-            outDir = "results/{sample}/salmon"
+            outDir = "results/{sample}/{sample}.salmon"
             tmpDir = "temp/{sample}/salmon"
         log:
             "results/{sample}/logs/salmon.log"
@@ -296,24 +302,25 @@ rule fastqc:
         mv {wildcards.sample}_{wildcards.pair}_fastqc.zip \
           results/{wildcards.sample}/QC/fastqc/
         """
-#
-# rule multiqc_raw:
-#     input:
-#         expand("temp/fastqc/{sample}_{pair}_fastqc.zip", \
-#                 sample = config["samples"], pair = ["1","2"]),
-#     output:
-#         html = "results/multiqc/multiqc_raw.html",
-#     params:
-#         configFile = config["multiqc"]["configFile"]
-#     log:
-#         "results/{sample}/logs/multiqc/multiqc.log"
-#     shell:
-#         """
-#         module load multiqc/1.7
-#         multiqc -n {output.html} -c {params.configFile} results/fastqc \
-#         temp/fastqc > {log}
-#         """
-#
+
+rule multiqc_raw:
+    input:
+        expand("results/{sample}/QC/fastqc/{sample}_{pair}_fastqc.zip", \
+                sample = config["samples"], pair = ["1","2"]),
+    output:
+        html = "results/multiqc/multiqc_raw.html",
+    params:
+        configFile = config[genomeBuild]["multiqcConfig"]
+    log:
+        "results/multiqc/multiqc_raw.log"
+    shell:
+        """
+        module load multiqc/1.7
+        multiqc -n {output.html} -c {params.configFile} results/*/QC/fastqc \
+          temp/fastqc > {log}
+        mv results/multiqc/multiqc_data results/multiqc/multiqc_raw_data
+        """
+
 # #rule virusSeq
 #
 # rule rseqc_tin:
@@ -331,44 +338,77 @@ rule fastqc:
 #         results/rsem/{wildcards.sample}.genome.sorted.bam >{log}
 #         mv {wildcards.sample}*genome* results/rseqc
 #         """
-#
-# rule rseqc_geneBodyCoverage:
-#     input:
-#         expand("results/rseqc/{sample}.genome.sorted.summary.txt",
-#                 sample = config["samples"])
-#     output:
-#         touch("temp/rseqc_coverage_done.flag")
-#     params:
-#         model = config["rseqc"]["modelFile"],
-#         analysis = config["analysis"]["name"]
-#     log:
-#         "results/{sample}/logs/rseqc/geneBodyCoverage.log"
-#     shell:
-#         """
-#         geneBody_coverage.py -r {params.model} \
-#           -i results/rsem/ -o {params.analysis} >{log}
-#         mv {params.analysis}* results/rseqc
-#         mv log.txt results/{sample}/logs/rseqc
-#         """
-#
-# rule rseqc_readDistribution
-#     input:
-#     output:
-#     log:
-#     shell:
-#
-# rule rseqc_junctionSaturation
-#     input:
-#     output:
-#     log:
-#     shell:
-#
-# rule rseqc_rRNAcontamination
-#     input:
-#     output:
-#     log:
-#     shell:
-#
+
+rule rseqc:
+    input:
+        "temp/{sample}.Aligned.sortedByCoord.out.bam"
+    output:
+
+    params:
+        model = config[genomeBuild]["rseqcModel"]
+    log:
+        "results/{sample}/logs/multiqc/multiqc.log"
+    shell:
+        """
+        module load rseqc/3.0.1
+        mkdir -p results/{wildcards.sample}/QC/rseqc
+        tin.py -i {input} -r {params.model}
+        junction_saturation.py -i {input} -r {params.model} \
+          -o {wildcards.sample}
+        mv {wildcards.sample}* results/{wildcards.sample}/QC/rseqc
+        """
+
+rule QM_bamqc:
+    input:
+        "temp/{sample}.Aligned.sortedByCoord.out.bam"
+    output:
+
+    params:
+        outDir = "results/{sample}/QC/qualimap/{sample}.bamqc",
+        outCoverage = "results/{sample}/QC/qualimap/{sample}.bamqc/{sample}.genomeCoverage.txt",
+        outHTML = "results/{sample}/QC/qualimap/{sample}.bamqc/{sample}.bamqc.html"
+        seqProtocol = "strand-specific-reverse"
+        featureFile = "temp/*gtf"
+        genomeGC = organism
+        javaMemSize = "4G"
+        otherFlags = "--collect-overlap-pairs"
+    log:
+
+    shell:
+        """
+        module load qualimap/2.2.1
+        mkdir -p {params.outDir}
+        qualimap bamqc -bam {input} -outdir {params.outDir} \
+          -oc {params.outCoverage} -outfile {params.outHTML} -outformat HTML \
+          --sequencing-protocol {params.seqProtocol} \
+          --feature-file {params.featureFile} --genome-gc-distr {params.organism} \
+          --java-mem-size={params.javaMemSize} {params.otherFlags}
+        """
+
+rule QM_rnaseq:
+    input:
+        "temp/{sample}.Aligned.sortedByCoord.out.bam"
+    output:
+
+    params:
+        outDir = "results/{sample}/QC/qualimap/{sample}.rnaseq",
+        outCounts = "results/{sample}/QC/qualimap/{sample}.rnaseq/{sample}.computedCounts.txt",
+        outHTML = "results/{sample}/QC/qualimap/{sample}.rnaseq/{sample}.rnaseq.html"
+        seqProtocol = "strand-specific-reverse"
+        featureFile = "temp/*gtf"
+        javaMemSize = "4G"
+        otherFlags = "--paired --sorted"
+    log:
+
+    shell:
+        """
+        module load qualimap/2.2.1
+        mkdir -p {params.outDir}
+        qualimap rnaseq -bam {input} -outdir {params.outDir} -outformat HTML \
+        -oc {params.outCounts} -outfile {params.outHTML} \
+        --sequencing-protocol {params.seqProtocol} -gtf {params.featureFile} \
+        --java-mem-size={params.otherFlags} {params.otherFlags}
+        """
 
 os.makedirs("results/multiqc", exist_ok=True)
 rule multiqc:

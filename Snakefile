@@ -218,7 +218,7 @@ if config["quantification"] == "salmon":
             threads = config["salmon"]["threads"],
             numBootstraps = config["salmon"]["numBootstraps"],
             otherFlags = config["salmon"]["otherFlags"],
-            outDir = "results/{sample}/{sample}.salmon"
+            outDir = "results/{sample}/{sample}.salmon",
             tmpDir = "temp/{sample}/salmon"
         log:
             "results/{sample}/logs/salmon.log"
@@ -245,7 +245,7 @@ if config["quantification"] == "salmon":
             "results/{sample}/salmon/{sample}.aligned.sorted.bam",
             "results/{sample}/salmon/{sample}.aligned.sorted.bam.bai"
         params:
-            outDir = "results/{sample}/salmon"
+            outDir = "results/{sample}/salmon",
             tmpDir = "temp/{sample}/salmon"
         log:
             "results/{sample}/logs/salmon_sam.log"
@@ -352,11 +352,11 @@ rule QM_bamqc:
     params:
         outDir = "results/{sample}/QC/qualimap/{sample}.bamqc",
         outCoverage = "results/{sample}/QC/qualimap/{sample}.bamqc/{sample}.genomeCoverage.txt",
-        outHTML = "results/{sample}/QC/qualimap/{sample}.bamqc/{sample}.bamqc.html"
-        seqProtocol = "strand-specific-reverse"
-        featureFile = "temp/*gtf"
-        genomeGC = organism
-        javaMemSize = "4G"
+        outHTML = "results/{sample}/QC/qualimap/{sample}.bamqc/{sample}.bamqc.html",
+        seqProtocol = "strand-specific-reverse",
+        featureFile = "temp/*gtf",
+        genomeGC = organism,
+        javaMemSize = "4G",
         otherFlags = "--collect-overlap-pairs"
     log:
         "results/{sample}/logs/QM_bamqc.log"
@@ -380,10 +380,10 @@ rule QM_rnaseq:
     params:
         outDir = "results/{sample}/QC/qualimap/{sample}.rnaseq",
         outCounts = "results/{sample}/QC/qualimap/{sample}.rnaseq/{sample}.computedCounts.txt",
-        outHTML = "results/{sample}/QC/qualimap/{sample}.rnaseq/{sample}.rnaseq.html"
-        seqProtocol = "strand-specific-reverse"
-        featureFile = "temp/*gtf"
-        javaMemSize = "4G"
+        outHTML = "results/{sample}/QC/qualimap/{sample}.rnaseq/{sample}.rnaseq.html",
+        seqProtocol = "strand-specific-reverse",
+        featureFile = "temp/*gtf",
+        javaMemSize = "4G",
         otherFlags = "--paired --sorted"
     log:
         "results/{sample}/logs/QM_rnaseq.log"
@@ -403,7 +403,8 @@ rule multiqc:
         expand("results/{sample}/QC/fastqc/{sample}_{pair}_fastqc.zip", \
                 sample = config["samples"], pair = ["1","2"]),
         "temp/starSalmon_run.flag",
-        "results/{sample}/QC/qualimap/{sample}.rnaseq/{sample}.rnaseq.html",
+        expand("results/{sample}/QC/qualimap/{sample}.rnaseq/{sample}.rnaseq.html", \
+                sample = config["samples"]),
         "results/{sample}/QC/qualimap/{sample}.bamqc/{sample}.bamqc.html",
         "results/{sample}/QC/rseqc/{sample}.Aligned.sortedByCoord.out.summary.txt",
         "results/{sample}/QC/rseqc/{sample}.junctionSaturation_plot.pdf"
@@ -429,9 +430,9 @@ rule multiqc:
 rule name_clean:
     input:
         "results/multiqc/multiqc.html",
-        directory("results/{sample}}/{sample}.salmon"),
-        directory("results/{sample}/QC/qualimap/{sample}.rnaseq"),
-        directory("results/{sample}/QC/qualimap/{sample}.bamqc")
+        "results/{sample}}/{sample}.salmon"),
+        "results/{sample}/QC/qualimap/{sample}.rnaseq",
+        "results/{sample}/QC/qualimap/{sample}.bamqc"
     output:
         directory("results/{sample}}/salmon"),
         directory("results/{sample}/QC/qualimap/rnaseq"),

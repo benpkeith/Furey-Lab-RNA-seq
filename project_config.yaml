@@ -55,6 +55,7 @@ cutadapt: # Current hard coded for Illumina TruSeq adapters. Modify -a/-A for ot
   A: AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT
   qualityCutoff: 10
   minimumLength: 20
+  threads: 4
 
 # https://raw.githubusercontent.com/alexdobin/STAR/master/doc/STARmanual.pdf
 star:

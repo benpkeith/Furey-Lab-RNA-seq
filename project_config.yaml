@@ -86,7 +86,7 @@ multiqc:
 rseqc:
   modelFile: bin/hg38.HouseKeepingGenes.bed
 
-#genome indexes - !!!STAR/SALMON INDEXES BUILT FOR PRIMARLY 50BP READS!!!
+#genome indexes - !!! hg19/hg38 STAR/SALMON INDEXES BUILT FOR PRIMARLY 50BP READS!!!
 #commands use to build these indexes are in X SOP
 
 hg19:

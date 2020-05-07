@@ -1,5 +1,5 @@
 # Ben Keith
-# last updated 2020.04.21
+# last updated 2020.05.07
 # Furey Lab Pipeline 2020
 # Snakemake 1.0
 
@@ -16,7 +16,8 @@ genomeBuild = config["analysis"]["genomeBuild"]
 # Target to run whole workflow:
 rule all:
     input:
-        "results/multiqc/multiqc.html"
+        "results/multiqc/multiqc.html",
+        expand("results/{sample}/logs/cleanup.log", sample=config["samples"])
 
 # StarSalmon flag.s
 rule quantification:
@@ -303,6 +304,7 @@ rule fastqc:
           results/{wildcards.sample}/QC/fastqc/
         """
 
+os.makedirs("results/multiqc", exist_ok=True)
 rule multiqc_raw:
     input:
         expand("results/{sample}/QC/fastqc/{sample}_{pair}_fastqc.zip", \
@@ -321,33 +323,16 @@ rule multiqc_raw:
         mv results/multiqc/multiqc_data results/multiqc/multiqc_raw_data
         """
 
-# #rule virusSeq
-#
-# rule rseqc_tin:
-#     input:
-#         "results/rsem/{sample}.genome.sorted.bam.bai"
-#     output:
-#         "results/rseqc/{sample}.genome.sorted.summary.txt"
-#     params:
-#         model = config["rseqc"]["modelFile"]
-#     log:
-#         "results/{sample}/logs/rseqc/{sample}.log"
-#     shell:
-#         """
-#         tin.py -r {params.model} -i \
-#         results/rsem/{wildcards.sample}.genome.sorted.bam >{log}
-#         mv {wildcards.sample}*genome* results/rseqc
-#         """
-
 rule rseqc:
     input:
         "temp/{sample}.Aligned.sortedByCoord.out.bam"
     output:
-
+        "results/{sample}/QC/rseqc/{sample}.Aligned.sortedByCoord.out.summary.txt",
+        "results/{sample}/QC/rseqc/{sample}.junctionSaturation_plot.pdf"
     params:
         model = config[genomeBuild]["rseqcModel"]
     log:
-        "results/{sample}/logs/multiqc/multiqc.log"
+        "results/{sample}/logs/rseqc.log"
     shell:
         """
         module load rseqc/3.0.1
@@ -362,7 +347,8 @@ rule QM_bamqc:
     input:
         "temp/{sample}.Aligned.sortedByCoord.out.bam"
     output:
-
+        "results/{sample}/QC/qualimap/{sample}.bamqc/{sample}.bamqc.html",
+        "results/{sample}/QC/qualimap/{sample}.bamqc/{sample}.genomeCoverage.txt"
     params:
         outDir = "results/{sample}/QC/qualimap/{sample}.bamqc",
         outCoverage = "results/{sample}/QC/qualimap/{sample}.bamqc/{sample}.genomeCoverage.txt",
@@ -373,7 +359,7 @@ rule QM_bamqc:
         javaMemSize = "4G"
         otherFlags = "--collect-overlap-pairs"
     log:
-
+        "results/{sample}/logs/QM_bamqc.log"
     shell:
         """
         module load qualimap/2.2.1
@@ -389,7 +375,8 @@ rule QM_rnaseq:
     input:
         "temp/{sample}.Aligned.sortedByCoord.out.bam"
     output:
-
+        "results/{sample}/QC/qualimap/{sample}.rnaseq/{sample}.computedCounts.txt",
+        "results/{sample}/QC/qualimap/{sample}.rnaseq/{sample}.rnaseq.html"
     params:
         outDir = "results/{sample}/QC/qualimap/{sample}.rnaseq",
         outCounts = "results/{sample}/QC/qualimap/{sample}.rnaseq/{sample}.computedCounts.txt",
@@ -399,7 +386,7 @@ rule QM_rnaseq:
         javaMemSize = "4G"
         otherFlags = "--paired --sorted"
     log:
-
+        "results/{sample}/logs/QM_rnaseq.log"
     shell:
         """
         module load qualimap/2.2.1
@@ -415,7 +402,11 @@ rule multiqc:
     input:
         expand("results/{sample}/QC/fastqc/{sample}_{pair}_fastqc.zip", \
                 sample = config["samples"], pair = ["1","2"]),
-        "temp/starSalmon_run.flag"
+        "temp/starSalmon_run.flag",
+        "results/{sample}/QC/qualimap/{sample}.rnaseq/{sample}.rnaseq.html",
+        "results/{sample}/QC/qualimap/{sample}.bamqc/{sample}.bamqc.html",
+        "results/{sample}/QC/rseqc/{sample}.Aligned.sortedByCoord.out.summary.txt",
+        "results/{sample}/QC/rseqc/{sample}.junctionSaturation_plot.pdf"
     output:
         html = "results/multiqc/multiqc.html",
         data = directory("results/multiqc/multiqc_data")
@@ -427,4 +418,32 @@ rule multiqc:
         """
         module load multiqc/1.7
         multiqc -n {output.html} -c {params.configFile} . > {log}
+        """
+
+##################
+#### CLEAN UP ####
+##################
+
+# For the purposes of multiqc, some directories had to be sample specific
+# This rule fixes those names.
+rule name_clean:
+    input:
+        "results/multiqc/multiqc.html",
+        directory("results/{sample}}/{sample}.salmon"),
+        directory("results/{sample}/QC/qualimap/{sample}.rnaseq"),
+        directory("results/{sample}/QC/qualimap/{sample}.bamqc")
+    output:
+        directory("results/{sample}}/salmon"),
+        directory("results/{sample}/QC/qualimap/rnaseq"),
+        directory("results/{sample}/QC/qualimap/bamqc")
+    log:
+        "results/{sample}/logs/cleanup.log"
+    shell:
+        """
+        mv results/{sample}}/{sample}.salmon \
+          results/{sample}}/salmon
+        mv results/{sample}/QC/qualimap/{sample}.rnaseq \
+          results/{sample}/QC/qualimap/rnaseq
+        mv results/{sample}/QC/qualimap/{sample}.bamqc \
+          results/{sample}/QC/qualimap/bamqc
         """

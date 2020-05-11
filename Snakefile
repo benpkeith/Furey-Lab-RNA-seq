@@ -17,16 +17,14 @@ genomeBuild = config["analysis"]["genomeBuild"]
 rule all:
     input:
         "results/multiqc/multiqc.html",
-        expand("results/{sample}/logs/cleanup.log", sample=config["samples"])
+        "results/{sample}/logs/cleanup.log"
 
 # StarSalmon flag.s
 rule quantification:
     input:
-        expand("results/{sample}/salmon/quant.sf", sample=config["samples"]),
-        expand("results/{sample}/star/{sample}.Aligned.sortedByCoord.out.bam",
-                                                   sample=config["samples"]),
-        expand("results/{sample}/salmon/{sample}.aligned.sorted.bam",
-                                                   sample=config["samples"])
+        "results/{sample}/salmon/quant.sf",
+        "results/{sample}/star/{sample}.Aligned.sortedByCoord.out.bam",
+        "results/{sample}/salmon/{sample}.aligned.sorted.bam"
     output:
         touch("temp/starSalmon_run.flag")
 
@@ -317,8 +315,7 @@ rule fastqc:
 os.makedirs("results/multiqc", exist_ok=True)
 rule multiqc_raw:
     input:
-        expand("results/{sample}/QC/fastqc/{sample}_{pair}_fastqc.zip", \
-                sample = config["samples"], pair = ["1","2"]),
+        "results/{sample}/QC/fastqc/{sample}_{pair}_fastqc.zip",
     output:
         html = "results/multiqc/multiqc_raw.html",
     params:
@@ -452,7 +449,7 @@ rule multiqc:
 rule name_clean:
     input:
         "results/multiqc/multiqc.html",
-        expand("results/{sample}}/{sample}.salmon", sample=config["samples"]),
+        "results/{sample}}/{sample}.salmon",
         "results/{sample}/QC/qualimap/{sample}.rnaseq",
         "results/{sample}/QC/qualimap/{sample}.bamqc"
     output:

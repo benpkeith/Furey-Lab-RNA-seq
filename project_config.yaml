@@ -81,6 +81,11 @@ rsem:
 fastqc:
   threads: 1
 
+fastQscreen:
+  conf: "bin/fastq_screen.conf"
+  subset: 1000000
+  aligner: "bowtie2"
+
 multiqc:
   configFile: bin/multiqc_config_hg38.yaml
 

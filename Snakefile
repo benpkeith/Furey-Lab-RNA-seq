@@ -32,11 +32,11 @@ rule quantification:
 
 rule QC:
     input:
-        "temp/starSalmon_run.flag",
         "results/{sample}/QC/qualimap/{sample}.rnaseq/{sample}.rnaseq.html",
         "results/{sample}/QC/qualimap/{sample}.bamqc/{sample}.bamqc.html",
         "results/{sample}/QC/rseqc/{sample}.Aligned.sortedByCoord.out.summary.txt",
-        "results/{sample}/QC/rseqc/{sample}.junctionSaturation_plot.pdf"
+        "results/{sample}/QC/rseqc/{sample}.junctionSaturation_plot.pdf",
+        "results/{sample}/{sample}.salmon/quant.sf"
     output:
         touch("temp/QC_complete.flag")
 
@@ -333,6 +333,25 @@ rule multiqc_raw:
         mv results/multiqc/multiqc_data results/multiqc/multiqc_raw_data
         """
 
+rule fastQscreen:
+    input:
+        "results/{sample}/fastq/{sample}_{pair}.fastq.gz"
+    output:
+        "results/{sample}/QC/fastQscreen/{sample}_{pair}_screen.txt"
+    params:
+        aligner = config["fastQscreen"]["aligner"],
+        ourDir = "results/{sample}/QC/fastQscreen",
+        subset = config["fastQscreen"]["subset"],
+        conf = config["fastQscreen"]["conf"]
+    log:
+        "results/{sample}/logs/fastQscreen.log"
+    shell:
+        """
+        /proj/fureylab/bin/fastq_screen --conf {params.conf} \
+          --aligner {params.aligner} --outdir {params.outDir} \
+          --subset {params.subset} {input} > {log}
+        """
+
 rule rseqc:
     input:
         "temp/{sample}.Aligned.sortedByCoord.out.bam"
@@ -433,7 +452,7 @@ rule multiqc:
 rule name_clean:
     input:
         "results/multiqc/multiqc.html",
-        "results/{sample}}/{sample}.salmon",
+        expand("results/{sample}}/{sample}.salmon", sample=config["samples"]),
         "results/{sample}/QC/qualimap/{sample}.rnaseq",
         "results/{sample}/QC/qualimap/{sample}.bamqc"
     output:

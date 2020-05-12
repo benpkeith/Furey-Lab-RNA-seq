@@ -3,76 +3,185 @@
 # Furey Lab Pipeline 2020
 # Snakemake 1.0
 
+########################
+#### Initial set up ####
+########################
+
 import os
+import glob
 shell.prefix("module load python/2.7.12; ")
 
-configfile: "project_config.yaml"
-[os.makedirs("results/" + str(i) + "/logs", exist_ok=True) for i in config["samples"]]
+configfile: "project_config_local.yaml"
+# [os.makedirs("results/" + str(i) + "/logs", exist_ok=True) for i in config["samples"]]
 
 #genome variables
 organism = config["analysis"]["organism"]
 genomeBuild = config["analysis"]["genomeBuild"]
 
+#sample/path variables
+
+if config["useSRA"]:
+    samples = config["samples"]
+    [os.makedirs("results/" + str(i) + "/logs", exist_ok=True) for i in samples]
+else:
+    paths = config["paths"]
+    paths = [i[:-1] for i in paths if i.endswith('/')]
+    samples = [i.rsplit('/', 1)[1] for i in paths]
+    # fastqPaths = [str(i + '/fastq') for i in paths]
+
+    [os.makedirs("results/" + str(i) + "/logs", exist_ok=True) for i in samples]
+    [os.makedirs("results/" + str(i) + "/fastq", exist_ok=True) for i in samples]
+
+    for path in paths:
+        for file in glob.glob(str(path + "/fastq/*gz")):
+            if "_R1_" in file or file.endswith("_1.f*q.gz"):
+                print(file)
+
+    # paths = config["paths"]
+    # fastqPaths = [str(i + '/fastq') for i in paths]
+    # paths = [i[:-1] for i in paths if i.endswith('/')]
+    # samples = [i.rsplit('/', 1)[1] for i in paths]
+    #
+    # [os.makedirs("results/" + str(i) + "/logs", exist_ok=True) for i in samples]
+    # [os.makedirs("results/" + str(i) + "/fastq", exist_ok=True) for i in samples]
+    #
+    # paths = [i.rsplit('/', 1)[0] for i in paths]
+    # for path in fastqPaths:
+    #     for file in glob.glob(str(path + "/*gz")):
+    #         os.system('ln -s file ')
+
+# print(fastqPaths)
+# print(paths)
+# print(samples)
+
+
+# [os.makedirs("results/" + str(i) + "/logs", exist_ok=True) for i in samples]
+
+##################
+#### Pipeline ####
+##################
+
 # Target to run whole workflow:
 rule all:
     input:
         "results/multiqc/multiqc.html",
-        "results/{sample}/logs/cleanup.log"
+        expand("results/{sample}/logs/cleanup.log", sample=samples)
 
 # StarSalmon flag.s
 rule quantification:
     input:
-        "results/{sample}/salmon/quant.sf",
+        "results/{sample}/{sample}.salmon/quant.sf",
         "results/{sample}/star/{sample}.Aligned.sortedByCoord.out.bam",
-        "results/{sample}/salmon/{sample}.aligned.sorted.bam"
+        "results/{sample}/{sample}.salmon/{sample}.aligned.sorted.bam"
     output:
         touch("temp/starSalmon_run.flag")
 
 rule QC:
     input:
-        "results/{sample}/QC/qualimap/{sample}.rnaseq/{sample}.rnaseq.html",
-        "results/{sample}/QC/qualimap/{sample}.bamqc/{sample}.bamqc.html",
-        "results/{sample}/QC/rseqc/{sample}.Aligned.sortedByCoord.out.summary.txt",
-        "results/{sample}/QC/rseqc/{sample}.junctionSaturation_plot.pdf",
-        "results/{sample}/{sample}.salmon/quant.sf"
+        expand("results/{sample}/QC/qualimap/{sample}.rnaseq/{sample}.rnaseq.html",
+            sample=samples),
+        expand("results/{sample}/QC/qualimap/{sample}.bamqc/{sample}.bamqc.html",
+            sample=samples),
+        expand("results/{sample}/QC/rseqc/{sample}.Aligned.sortedByCoord.out.summary.txt",
+            sample=samples),
+        expand("results/{sample}/QC/rseqc/{sample}.junctionSaturation_plot.pdf",
+            sample=samples),
+        expand("results/{sample}/{sample}.salmon/quant.sf",
+            sample=samples),
+        expand("results/{sample}/QC/fastQscreen/{sample}_{pair}_screen.txt",
+            sample=samples, pair=["1","2"]),
+        "results/multiqc/multiqc_raw.html"
     output:
         touch("temp/QC_complete.flag")
 
-###################################-
-#### Fetch and split SRA files ####
-###################################
+#################################################
+####### useSRA: Fetch and split SRA files #######
+#### else: Create links to local fastq files ####
+#################################################
 
+if config["useSRA"]:
+    rule prefetch:
+        output:
+            "temp/{sample}/fastq/{sample}.sra"
+        log:
+            "results/{sample}/logs/prefetch.log"
+        shell:
+            """
+            module load sratoolkit/2.10.1
+            prefetch -L 5 -o {output} {wildcards.sample} > {log}
+            """
 
-rule prefetch:
-    output:
-        "temp/{sample}/fastq/{sample}.sra"
-    log:
-        "results/{sample}/logs/prefetch.log"
-    shell:
-        """
-        module load sratoolkit/2.10.1
-        prefetch -L 5 -o {output} {wildcards.sample} > {log}
-        """
+    rule fastq_dump:
+        input:
+            "temp/{sample}/fastq/{sample}.sra"
+        output:
+            "results/{sample}/fastq/{sample}_1.fastq.gz",
+            "results/{sample}/fastq/{sample}_2.fastq.gz"
+        params:
+            fastq_dir = "fastq/",
+            other_flags = "--split-files"
+        log:
+            "results/{sample}/logs/fastq_dump.log"
+        shell:
+            """
+            module load sratoolkit/2.10.1
+            fastq-dump {params.other_flags} -L 5 -O {params.fastq_dir} {input} \
+              > {log}
+            gzip fastq/{wildcards.sample}_1.fastq
+            gzip fastq/{wildcards.sample}_2.fastq
+            mkdir results/{wildcards.sample}/fastq
+            ln -s fastq/{wildcards.sample}_1.fastq.gz \
+              results/{wildcards.sample}/fastq/{wildcards.sample}_1.fastq.gz
+            ln -s fastq/{wildcards.sample}_2.fastq.gz \
+              results/{wildcards.sample}/fastq/{wildcards.sample}_2.fastq.gz
+            """
 
-rule fastq_dump:
-    input:
-        "temp/{sample}/fastq/{sample}.sra"
-    output:
-        "results/{sample}/fastq/{sample}_1.fastq.gz",
-        "results/{sample}/fastq/{sample}_2.fastq.gz"
-    params:
-        fastq_dir = "results/{sample}/fastq/",
-        other_flags = "--split-files"
-    log:
-        "results/{sample}/logs/fastq_dump.log"
-    shell:
-        """
-        module load sratoolkit/2.10.1
-        fastq-dump {params.other_flags} -L 5 -O {params.fastq_dir} {input} \
-          > {log}
-        gzip results/{wildcards.sample}/fastq/{wildcards.sample}_1.fastq
-        gzip results/{wildcards.sample}/fastq/{wildcards.sample}_2.fastq
-        """
+# if config["fastqR1"]:
+#     rule fastq_links:
+#         input:
+#             R1 = expand("{path}/{sample}/fastq/{prepend}_R1_{sampleInfo}.f{fastq}q.gz",
+#                      path = paths, sample = samples, allow_missing=True),
+#             R2 = expand("{path}/{sample}/fastq/{prepend}_R2_{sampleInfo}.f{fastq}q.gz",
+#                      path = paths, sample = samples, allow_missing=True)
+#         output:
+#             "results/{sample}/fastq/{sample}_1.fastq.gz",
+#             "results/{sample}/fastq/{sample}_2.fastq.gz"
+#         log:
+#             "results/{sample}/logs/fastq_links.log"
+#         shell:
+#             """
+#             ln -s {input.R1} \
+#               results/{wildcards.sample}/fastq/{wildcards.sample}_1.fastq.gz > {log}
+#             ln -s {input.R2} \
+#               results/{wildcards.sample}/fastq/{wildcards.sample}_2.fastq.gz >> {log}
+#               """
+#
+# else:
+#     rule fastq_links:
+#         input:
+#             R1 = "{path}/{sample}/fastq/*1.f*q*.gz",
+#             R2 = "{path}/{sample}/fastq/*2.f*q*.gz"
+#         output:
+#             "results/{sample}/fastq/{sample}_1.fastq.gz",
+#             "results/{sample}/fastq/{sample}_2.fastq.gz"
+#         log:
+#             "results/{sample}/logs/fastq_links.log"
+#         shell:
+#             """
+#             ln -s {input.R1} \
+#               results/{wildcards.sample}/fastq/{wildcards.sample}_1.fastq.gz > {log}
+#             ln -s {input.R2} \
+#               results/{wildcards.sample}/fastq/{wildcards.sample}_2.fastq.gz >> {log}
+#             """
+
+# else:
+#     rule fastq_links:
+#         output:
+#             "results/{sample}/fastq/{sample}_1.fastq.gz",
+#             "results/{sample}/fastq/{sample}_2.fastq.gz"
+#         log:
+#             "results/{sample}/logs/fastq_links.log"
+#         run:
 
 ##################################
 #### Preprocessing - cutadapt ####
@@ -250,10 +359,10 @@ if config["quantification"] == "salmon":
         input:
             "temp/{sample}/salmon/{sample}.aligned.sam"
         output:
-            "results/{sample}/salmon/{sample}.aligned.sorted.bam",
-            "results/{sample}/salmon/{sample}.aligned.sorted.bam.bai"
+            "results/{sample}/{sample}.salmon/{sample}.aligned.sorted.bam",
+            "results/{sample}/{sample}.salmon/{sample}.aligned.sorted.bam.bai"
         params:
-            outDir = "results/{sample}/salmon",
+            outDir = "results/{sample}/{sample}.salmon",
             tmpDir = "temp/{sample}/salmon"
         log:
             "results/{sample}/logs/salmon_sam.log"
@@ -315,9 +424,10 @@ rule fastqc:
 os.makedirs("results/multiqc", exist_ok=True)
 rule multiqc_raw:
     input:
-        "results/{sample}/QC/fastqc/{sample}_{pair}_fastqc.zip",
+        expand("results/{sample}/QC/fastqc/{sample}_{pair}_fastqc.zip",
+            sample=samples, pair=["1","2"]),
     output:
-        html = "results/multiqc/multiqc_raw.html",
+        "results/multiqc/multiqc_raw.html",
     params:
         configFile = config[genomeBuild]["multiqcConfig"]
     log:
@@ -325,7 +435,7 @@ rule multiqc_raw:
     shell:
         """
         module load multiqc/1.7
-        multiqc -n {output.html} -c {params.configFile} results/*/QC/fastqc \
+        multiqc -n {output} -c {params.configFile} results/*/QC/fastqc \
           temp/fastqc > {log}
         mv results/multiqc/multiqc_data results/multiqc/multiqc_raw_data
         """
@@ -337,13 +447,15 @@ rule fastQscreen:
         "results/{sample}/QC/fastQscreen/{sample}_{pair}_screen.txt"
     params:
         aligner = config["fastQscreen"]["aligner"],
-        ourDir = "results/{sample}/QC/fastQscreen",
+        outDir = "results/{sample}/QC/fastQscreen",
         subset = config["fastQscreen"]["subset"],
         conf = config["fastQscreen"]["conf"]
     log:
-        "results/{sample}/logs/fastQscreen.log"
+        "results/{sample}/logs/fastQscreen_{pair}.log"
     shell:
         """
+        module load bowtie2/2.3.4
+        module load samtools/1.9
         /proj/fureylab/bin/fastq_screen --conf {params.conf} \
           --aligner {params.aligner} --outdir {params.outDir} \
           --subset {params.subset} {input} > {log}
@@ -393,7 +505,7 @@ rule QM_bamqc:
         qualimap bamqc -bam {input} -outdir {params.outDir} \
           -oc {params.outCoverage} -outfile {params.outHTML} -outformat HTML \
           --sequencing-protocol {params.seqProtocol} \
-          --feature-file {params.featureFile} --genome-gc-distr {params.organism} \
+          --feature-file {params.featureFile} --genome-gc-distr {params.genomeGC} \
           --java-mem-size={params.javaMemSize} {params.otherFlags}
         """
 
@@ -449,21 +561,22 @@ rule multiqc:
 rule name_clean:
     input:
         "results/multiqc/multiqc.html",
-        "results/{sample}}/{sample}.salmon",
-        "results/{sample}/QC/qualimap/{sample}.rnaseq",
-        "results/{sample}/QC/qualimap/{sample}.bamqc"
+        "results/{sample}/{sample}.salmon/{sample}.aligned.sorted.bam.bai",
+        "results/{sample}/QC/qualimap/{sample}.rnaseq/{sample}.rnaseq.html",
+        "results/{sample}/QC/qualimap/{sample}.bamqc/{sample}.bamqc.html"
     output:
-        directory("results/{sample}}/salmon"),
+        directory("results/{sample}/salmon"),
         directory("results/{sample}/QC/qualimap/rnaseq"),
         directory("results/{sample}/QC/qualimap/bamqc")
     log:
         "results/{sample}/logs/cleanup.log"
     shell:
         """
-        mv results/{sample}}/{sample}.salmon \
-          results/{sample}}/salmon
-        mv results/{sample}/QC/qualimap/{sample}.rnaseq \
-          results/{sample}/QC/qualimap/rnaseq
-        mv results/{sample}/QC/qualimap/{sample}.bamqc \
-          results/{sample}/QC/qualimap/bamqc
+        mv results/{wildcards.sample}/{wildcards.sample}.salmon \
+          results/{wildcards.sample}/salmon
+        mv results/{wildcards.sample}/QC/qualimap/{wildcards.sample}.rnaseq \
+          results/{wildcards.sample}/QC/qualimap/rnaseq
+        mv results/{wildcards.sample}/QC/qualimap/{wildcards.sample}.bamqc \
+          results/{wildcards.sample}/QC/qualimap/bamqc
+        cp project_config.yaml results/{wildcards.sample}
         """

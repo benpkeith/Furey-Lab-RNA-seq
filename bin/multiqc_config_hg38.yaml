@@ -1,8 +1,14 @@
 fn_clean_exts:
     - '.gz'
     - '_fastq'
+    - '.Aligned'
+    - '.Log'
+    - '.bamqc'
+    - '.salmon'
+    - '_1.fastq'
+    - '_2.fastq'
 
 plots_force_interactive: TRUE
 
 fastqc_config:
-    fastqc_theoretical_gc: 'fastqc_theoretical_gc_hg38_txome.txt'
+    fastqc_theoretical_gc: 'bin/fastqc_theoretical_gc_hg38_txome.txt'

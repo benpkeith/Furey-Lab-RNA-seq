@@ -11,10 +11,12 @@ import os
 import glob
 shell.prefix("module load python/2.7.12; ")
 
-configfile: "project_config_local.yaml"
+configfile: "project_config.yaml"
 # [os.makedirs("results/" + str(i) + "/logs", exist_ok=True) for i in config["samples"]]
 
 #genome variables
+configFilename = "project_config.yaml"
+analysisName = config["analysis"]["name"]
 organism = config["analysis"]["organism"]
 genomeBuild = config["analysis"]["genomeBuild"]
 
@@ -24,18 +26,27 @@ if config["useSRA"]:
     samples = config["samples"]
     [os.makedirs("results/" + str(i) + "/logs", exist_ok=True) for i in samples]
 else:
-    paths = config["paths"]
-    paths = [i[:-1] for i in paths if i.endswith('/')]
-    samples = [i.rsplit('/', 1)[1] for i in paths]
+    samplePaths = config["samples"]
+    samplePaths = [i[:-1] for i in samplePaths if i.endswith('/')]
+    samples = [i.rsplit('/', 1)[1] for i in samplePaths]
     # fastqPaths = [str(i + '/fastq') for i in paths]
-
+    #print(samples)
     [os.makedirs("results/" + str(i) + "/logs", exist_ok=True) for i in samples]
     [os.makedirs("results/" + str(i) + "/fastq", exist_ok=True) for i in samples]
 
-    for path in paths:
+    for path in samplePaths:
         for file in glob.glob(str(path + "/fastq/*gz")):
+            samp = str(path.rsplit('/', 1)[1])
             if "_R1_" in file or file.endswith("_1.f*q.gz"):
-                print(file)
+                cmd = "ln -s " + str(file) + " results/" + \
+                  samp + "/fastq/" + samp + "_1.fastq.gz" +  " >/dev/null 2>&1"
+                #print(cmd)
+                os.system(cmd)
+            else:
+                cmd = "ln -s " + str(file) + " results/" + \
+                  samp + "/fastq/" + samp + "_2.fastq.gz" +  " >/dev/null 2>&1"
+                #print(cmd)
+                os.system(cmd)
 
     # paths = config["paths"]
     # fastqPaths = [str(i + '/fastq') for i in paths]
@@ -65,10 +76,11 @@ else:
 rule all:
     input:
         "results/multiqc/multiqc.html",
+        "results/counts/" + analysisName + ".txi.rds",
         expand("results/{sample}/logs/cleanup.log", sample=samples)
 
 # StarSalmon flag.s
-rule quantification:
+rule alignmentQuantification:
     input:
         "results/{sample}/{sample}.salmon/quant.sf",
         "results/{sample}/star/{sample}.Aligned.sortedByCoord.out.bam",
@@ -78,9 +90,9 @@ rule quantification:
 
 rule QC:
     input:
-        expand("results/{sample}/QC/qualimap/{sample}.rnaseq/{sample}.rnaseq.html",
+        expand("results/{sample}/QC/qualimap/{sample}.rnaseq/qualimapReport.html",
             sample=samples),
-        expand("results/{sample}/QC/qualimap/{sample}.bamqc/{sample}.bamqc.html",
+        expand("results/{sample}/QC/qualimap/{sample}.bamqc/qualimapReport.html",
             sample=samples),
         expand("results/{sample}/QC/rseqc/{sample}.Aligned.sortedByCoord.out.summary.txt",
             sample=samples),
@@ -90,7 +102,7 @@ rule QC:
             sample=samples),
         expand("results/{sample}/QC/fastQscreen/{sample}_{pair}_screen.txt",
             sample=samples, pair=["1","2"]),
-        "results/multiqc/multiqc_raw.html"
+        "results/multiqc_raw/multiqc_raw.html"
     output:
         touch("temp/QC_complete.flag")
 
@@ -307,12 +319,17 @@ if config["quantification"] == "salmon":
               --outFileNamePrefix {params.outFileNamePrefix} \
               --readFilesIn {input.fastq1} {input.fastq2} \
               > {log}
+
+            module load samtools/1.9
             samtools index \
               results/{wildcards.sample}/star/{wildcards.sample}.Aligned.sortedByCoord.out.bam
 
-            cp results/{wildcards.sample}/star/{wildcards.sample}.Aligned.sortedByCoord.out.bam* \
+            cp results/{wildcards.sample}/star/{wildcards.sample}.Aligned.sortedByCoord.out.bam \
               temp
-            cp {params.featureFile} temp; gunzip temp/*gtf.gz
+            samtools index \
+              temp/{wildcards.sample}.Aligned.sortedByCoord.out.bam
+            rm temp/*gtf*; cp {params.featureFile} temp; gunzip temp/*gtf.gz \
+              >/dev/null 2>&1
 
             mv {params.outFileNamePrefix}Log.final.out \
               results/{wildcards.sample}/logs/star/
@@ -381,23 +398,56 @@ if config["quantification"] == "salmon":
 #### Post-quantification ####
 #############################
 
-# rule deconvolution
-#     input:
-#     output:
-#     log:
-#     shell:
-#
-# rule matrixGeneration
+#if config["countMatrix"]:
+os.makedirs("results/counts", exist_ok=True)
+rule matrixGeneration:
+    input:
+        expand("results/{sample}/{sample}.salmon/quant.sf", sample=samples)
+    output:
+        "results/counts/" + analysisName + ".counts.txt",
+        "results/counts/" + analysisName + ".tpm.txt",
+        "results/counts/" + analysisName + ".txi.rds"
+    params:
+        configFn = configFilename,
+        tx2gene = config[genomeBuild][config["countGeneSymbols"]],
+        tpm = "results/counts/" + analysisName + ".tpm.txt",
+        counts = "results/counts/" + analysisName + ".counts.txt",
+        txi = "results/counts/" + analysisName + ".txi.rds"
+    log:
+        "matrixGeneration.log"
+    shell:
+        """
+        mkdir -p results/counts
+        module load r/3.6.0
+        Rscript /proj/fureylab/bin/countMatrixGeneration.R {params.configFn} \
+          {params.tx2gene} --tpm {params.tpm} --counts {params.counts} \
+          --txi {params.txi} --pipeline > {log}
+        """
+
+# rule deconvolution:
 #     input:
 #     output:
 #     log:
 #     shell:
 
-# rule bamCoverage
-#     input:
-#     output:
-#     log:
-#     shell:
+rule bamCoverage:
+    input:
+        "temp/{sample}.Aligned.sortedByCoord.out.bam"
+    output:
+        "results/{sample}/star/{sample}.RPKM.bw"
+    params:
+        binSize = config["bamCoverage"]["binSize"],
+        normalizeUsing = config["bamCoverage"]["normalizeUsing"],
+        ignoreForNormalization = config["bamCoverage"]["ignoreForNormalization"]
+    log:
+        "results/{sample}/logs/bamCoverage.log"
+    shell:
+        """
+        module load deeptools/3.2.0
+        bamCoverage --ignoreForNormalization {params.ignoreForNormalization} \
+          -o {output} --binSize {params.binSize} \
+          --normalizeUsing {params.normalizeUsing} --bam {input} > {log}
+        """
 
 #########################
 #### Quality control ####
@@ -421,23 +471,19 @@ rule fastqc:
           results/{wildcards.sample}/QC/fastqc/
         """
 
-os.makedirs("results/multiqc", exist_ok=True)
+os.makedirs("results/multiqc_raw", exist_ok=True)
 rule multiqc_raw:
     input:
         expand("results/{sample}/QC/fastqc/{sample}_{pair}_fastqc.zip",
             sample=samples, pair=["1","2"]),
     output:
-        "results/multiqc/multiqc_raw.html",
-    params:
-        configFile = config[genomeBuild]["multiqcConfig"]
+        "results/multiqc_raw/multiqc_raw.html",
     log:
-        "results/multiqc/multiqc_raw.log"
+        "results/multiqc_raw/multiqc_raw.log"
     shell:
         """
         module load multiqc/1.7
-        multiqc -n {output} -c {params.configFile} results/*/QC/fastqc \
-          temp/fastqc > {log}
-        mv results/multiqc/multiqc_data results/multiqc/multiqc_raw_data
+        multiqc -n {output} results/*/QC/fastqc > {log}
         """
 
 rule fastQscreen:
@@ -454,11 +500,12 @@ rule fastQscreen:
         "results/{sample}/logs/fastQscreen_{pair}.log"
     shell:
         """
+        mkdir -p results/{wildcards.sample}/QC/fastQscreen
         module load bowtie2/2.3.4
         module load samtools/1.9
-        /proj/fureylab/bin/fastq_screen --conf {params.conf} \
-          --aligner {params.aligner} --outdir {params.outDir} \
-          --subset {params.subset} {input} > {log}
+        perl /proj/fureylab/bin/fastq_screen_0.14/fastq_screen \
+          --conf {params.conf} --aligner {params.aligner} \
+          --outdir {params.outDir} --subset {params.subset} {input} > {log}
         """
 
 rule rseqc:
@@ -473,11 +520,12 @@ rule rseqc:
         "results/{sample}/logs/rseqc.log"
     shell:
         """
+        module load r/3.6.0
         module load rseqc/3.0.1
         mkdir -p results/{wildcards.sample}/QC/rseqc
-        tin.py -i {input} -r {params.model}
+        tin.py -i {input} -r {params.model} > {log}
         junction_saturation.py -i {input} -r {params.model} \
-          -o {wildcards.sample}
+          -o {wildcards.sample} >> {log}
         mv {wildcards.sample}* results/{wildcards.sample}/QC/rseqc
         """
 
@@ -485,12 +533,11 @@ rule QM_bamqc:
     input:
         "temp/{sample}.Aligned.sortedByCoord.out.bam"
     output:
-        "results/{sample}/QC/qualimap/{sample}.bamqc/{sample}.bamqc.html",
+        "results/{sample}/QC/qualimap/{sample}.bamqc/qualimapReport.html",
         "results/{sample}/QC/qualimap/{sample}.bamqc/{sample}.genomeCoverage.txt"
     params:
         outDir = "results/{sample}/QC/qualimap/{sample}.bamqc",
         outCoverage = "results/{sample}/QC/qualimap/{sample}.bamqc/{sample}.genomeCoverage.txt",
-        outHTML = "results/{sample}/QC/qualimap/{sample}.bamqc/{sample}.bamqc.html",
         seqProtocol = "strand-specific-reverse",
         featureFile = "temp/*gtf",
         genomeGC = organism,
@@ -503,10 +550,10 @@ rule QM_bamqc:
         module load qualimap/2.2.1
         mkdir -p {params.outDir}
         qualimap bamqc -bam {input} -outdir {params.outDir} \
-          -oc {params.outCoverage} -outfile {params.outHTML} -outformat HTML \
+          -oc {params.outCoverage} -outformat HTML \
           --sequencing-protocol {params.seqProtocol} \
           --feature-file {params.featureFile} --genome-gc-distr {params.genomeGC} \
-          --java-mem-size={params.javaMemSize} {params.otherFlags}
+          --java-mem-size={params.javaMemSize} {params.otherFlags} > {log}
         """
 
 rule QM_rnaseq:
@@ -514,11 +561,10 @@ rule QM_rnaseq:
         "temp/{sample}.Aligned.sortedByCoord.out.bam"
     output:
         "results/{sample}/QC/qualimap/{sample}.rnaseq/{sample}.computedCounts.txt",
-        "results/{sample}/QC/qualimap/{sample}.rnaseq/{sample}.rnaseq.html"
+        "results/{sample}/QC/qualimap/{sample}.rnaseq/qualimapReport.html"
     params:
         outDir = "results/{sample}/QC/qualimap/{sample}.rnaseq",
         outCounts = "results/{sample}/QC/qualimap/{sample}.rnaseq/{sample}.computedCounts.txt",
-        outHTML = "results/{sample}/QC/qualimap/{sample}.rnaseq/{sample}.rnaseq.html",
         seqProtocol = "strand-specific-reverse",
         featureFile = "temp/*gtf",
         javaMemSize = "4G",
@@ -530,9 +576,9 @@ rule QM_rnaseq:
         module load qualimap/2.2.1
         mkdir -p {params.outDir}
         qualimap rnaseq -bam {input} -outdir {params.outDir} -outformat HTML \
-        -oc {params.outCounts} -outfile {params.outHTML} \
-        --sequencing-protocol {params.seqProtocol} -gtf {params.featureFile} \
-        --java-mem-size={params.otherFlags} {params.otherFlags}
+        -oc {params.outCounts} --sequencing-protocol {params.seqProtocol} \
+        -gtf {params.featureFile} --java-mem-size={params.otherFlags} \
+        {params.otherFlags} > {log}
         """
 
 os.makedirs("results/multiqc", exist_ok=True)
@@ -562,8 +608,9 @@ rule name_clean:
     input:
         "results/multiqc/multiqc.html",
         "results/{sample}/{sample}.salmon/{sample}.aligned.sorted.bam.bai",
-        "results/{sample}/QC/qualimap/{sample}.rnaseq/{sample}.rnaseq.html",
-        "results/{sample}/QC/qualimap/{sample}.bamqc/{sample}.bamqc.html"
+        "results/{sample}/QC/qualimap/{sample}.rnaseq/qualimapReport.html",
+        "results/{sample}/QC/qualimap/{sample}.bamqc/qualimapReport.html",
+        "results/{sample}/star/{sample}.RPKM.bw"
     output:
         directory("results/{sample}/salmon"),
         directory("results/{sample}/QC/qualimap/rnaseq"),

@@ -6,17 +6,13 @@
 # Analysis set up
 ###
 analysis:
-  name: AZ_exercise
+  name: "Furey_analysis"
   organism: "human" #supports "human"/"mouse"
   genomeBuild: "hg38" #supports hg38 (GRCh38) and hg19 (GRCh37)
 
 samples:
-  - SRR5223500
-  - SRR5223505
-
-stimulation:
-  - control
-  - treated
+  - /pine/scr/b/p/bpk/testfq/172/
+  - /pine/scr/b/p/bpk/testfq/174/
 
 ###
 # FLAGS AND OPTIONS
@@ -25,10 +21,16 @@ stimulation:
 useSRA: FALSE
 # True if input consists of SRA IDs.
 
+# fastqR1: TRUE
+# To identify fastq files when reading local files.
+# TRUE: read files contain "_R1_" or "_R2_" (e.g. *_S1_L001_R1_001.fastq.gz)
+# FALSE: reads are identified by the last character (e.g. (_1.fastq.gz/_2.fastq.gz))
+# NOTE: This identification of fastq files works with both *fastq.gz and *fq.gz
+
 quantification: salmon
 # supports "salmon" and "rsem".
 
-countMatrix: TRUE
+#countMatrix: TRUE
 # Generates count/TPM matrix based on input samples.
 
 deconvolution: TRUE
@@ -37,7 +39,7 @@ deconvolution: TRUE
 pairedEnd: TRUE
 # TRUE if input samples were sequenced paired-end
 
-tx2geneSymbols: TRUE
+countGeneSymbols: "tx2gene_ensembl"
 # Regarding the transcript to gene level conversion step.
 # Instead of ensembl gene ID names, HGNC gene symbols will be
 # generated instead. NOTE: This is not available for all genomes,
@@ -61,7 +63,7 @@ cutadapt: # Current hard coded for Illumina TruSeq adapters. Modify -a/-A for ot
 star:
   threads: 8
   genomeLoad: LoadAndRemove
-  outSAMtype: SAM #"BAM SortedByCoordinate"
+  outSAMtype: "BAM SortedByCoordinate" #SAM
   quantMode: GeneCounts
   readFilesCommand: "gunzip -c"
   sjdbOverhang: 49
@@ -91,6 +93,11 @@ multiqc:
 
 rseqc:
   modelFile: bin/hg38.HouseKeepingGenes.bed
+
+bamCoverage:
+  binSize: 10
+  normalizeUsing: RPKM
+  ignoreForNormalization: 'chrX chrY'
 
 #genome indexes - !!! hg19/hg38 STAR/SALMON INDEXES BUILT FOR PRIMARLY 50BP READS!!!
 #commands use to build these indexes are in X SOP

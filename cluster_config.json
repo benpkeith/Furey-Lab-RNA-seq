@@ -1,7 +1,7 @@
 {
     "__default__":
     {
-        "mem": "15G",
+        "mem": "10G",
         "time": "5:0:0",
         "ntasks": "1",
         "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
@@ -10,7 +10,7 @@
     },
     "cutadapt":
     {
-        "mem": "25G",
+        "mem": "10G",
         "time": "5:0:0",
         "ntasks": "1",
         "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
@@ -51,6 +51,51 @@
         "ntasks": "1",
         "output": "results/multiqc/{rule}_SLURM.out",
         "err": "results/multiqc/{rule}_SLURM.err",
+        "jobname": "{rule}"
+    },
+    "multiqc_raw":
+    {
+        "mem": "10G",
+        "time": "5:0:0",
+        "ntasks": "1",
+        "output": "results/multiqc/{rule}_SLURM.out",
+        "err": "results/multiqc/{rule}_SLURM.err",
+        "jobname": "{rule}"
+    },
+    "fastqc":
+    {
+        "mem": "10G",
+        "time": "5:0:0",
+        "ntasks": "1",
+        "output": "results/{wildcards.sample}/logs/{rule}_{wildcards.pair}_SLURM.out",
+        "err": "results/{wildcards.sample}/logs/{rule}_{wildcards.pair}_SLURM.err",
+        "jobname": "{rule}"
+    },
+    "fastQscreen":
+    {
+        "mem": "10G",
+        "time": "5:0:0",
+        "ntasks": "1",
+        "output": "results/{wildcards.sample}/logs/{rule}_{wildcards.pair}_SLURM.out",
+        "err": "results/{wildcards.sample}/logs/{rule}_{wildcards.pair}_SLURM.err",
+        "jobname": "{rule}"
+    },
+    "matrixGeneration":
+    {
+        "mem": "10G",
+        "time": "5:0:0",
+        "ntasks": "1",
+        "output": "results/counts/{rule}_SLURM.out",
+        "err": "results/counts/{rule}_SLURM.err",
+        "jobname": "{rule}"
+    },
+    "bamCoverage":
+    {
+        "mem": "50G",
+        "time": "5:0:0",
+        "ntasks": "1",
+        "output": "results/{wildcards.sample}/logs/{rule}_{wildcards.pair}_SLURM.out",
+        "err": "results/{wildcards.sample}/logs/{rule}_{wildcards.pair}_SLURM.err",
         "jobname": "{rule}"
     }
 }

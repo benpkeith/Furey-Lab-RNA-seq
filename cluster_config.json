@@ -94,8 +94,8 @@
         "mem": "50G",
         "time": "5:0:0",
         "ntasks": "1",
-        "output": "results/{wildcards.sample}/logs/{rule}_{wildcards.pair}_SLURM.out",
-        "err": "results/{wildcards.sample}/logs/{rule}_{wildcards.pair}_SLURM.err",
+        "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
+        "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",
         "jobname": "{rule}"
     }
 }

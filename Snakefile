@@ -475,9 +475,9 @@ os.makedirs("results/multiqc_raw", exist_ok=True)
 rule multiqc_raw:
     input:
         expand("results/{sample}/QC/fastqc/{sample}_{pair}_fastqc.zip",
-            sample=samples, pair=["1","2"]),
+            sample=samples, pair=["1","2"])
     output:
-        "results/multiqc_raw/multiqc_raw.html",
+        "results/multiqc_raw/multiqc_raw.html"
     log:
         "results/multiqc_raw/multiqc_raw.log"
     shell:

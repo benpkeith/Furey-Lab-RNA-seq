@@ -10,9 +10,9 @@
     },
     "cutadapt":
     {
-        "mem": "10G",
+        "mem": "25G",
         "time": "5:0:0",
-        "ntasks": "1",
+        "ntasks": "4",
         "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
         "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",
         "jobname": "{rule}"
@@ -30,7 +30,7 @@
     {
         "mem": "50G",
         "time": "5:0:0",
-        "ntasks": "1",
+        "ntasks": "8",
         "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
         "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",
         "jobname": "{rule}"
@@ -39,7 +39,7 @@
     {
         "mem": "25G",
         "time": "5:0:0",
-        "ntasks": "1",
+        "ntasks": "8",
         "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
         "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",
         "jobname": "{rule}"

@@ -414,7 +414,7 @@ rule matrixGeneration:
         counts = "results/counts/" + analysisName + ".counts.txt",
         txi = "results/counts/" + analysisName + ".txi.rds"
     log:
-        "matrixGeneration.log"
+        "results/counts/matrixGeneration.log"
     shell:
         """
         mkdir -p results/counts

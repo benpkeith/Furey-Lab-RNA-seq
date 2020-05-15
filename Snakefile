@@ -72,7 +72,7 @@ else:
 # Target to run whole workflow:
 rule all:
     input:
-        "results/multiqc/multiqc.html",
+        "results/multiqc/" + config["analysis"]["name"] + "_multiqc.html",
         "results/counts/" + analysisName + ".txi.rds",
         expand("results/{sample}/logs/cleanup.log", sample=samples)
 
@@ -110,7 +110,7 @@ rule QC:
             sample=samples),
         expand("results/{sample}/QC/fastQscreen/{sample}_{pair}_screen.txt",
             sample=samples, pair=["1","2"]),
-        "results/multiqc_raw/multiqc_raw.html"
+        "results/multiqc_raw/" +config["analysis"]["name"] +"_multiqc_raw.html"
     output:
         touch("temp/QC_complete.flag")
 
@@ -587,7 +587,7 @@ rule multiqc:
 # This rule fixes those names.
 rule name_clean:
     input:
-        "results/multiqc/multiqc.html",
+        "results/multiqc/" + config["analysis"]["name"] + "_multiqc.html",
         "results/{sample}/{sample}.salmon/{sample}.aligned.sorted.bam.bai",
         "results/{sample}/QC/qualimap/{sample}.rnaseq/qualimapReport.html",
         "results/{sample}/QC/qualimap/{sample}.bamqc/qualimapReport.html",

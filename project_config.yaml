@@ -24,6 +24,11 @@ analysis:
 samples:
   - /proj/fureylab/data/RNA-seq/human/colon_tissue/nonIBD/172/
   - /proj/fureylab/data/RNA-seq/human/colon_tissue/nonIBD/174/
+  
+# For a run using SRA IDS, use the following example as a guide.
+# samples:
+#   - SRR5223500
+#   - SRR5223505
 
 ###
 # FLAGS AND OPTIONS
@@ -44,8 +49,9 @@ quantification: salmon
 deconvolution: FALSE
 # Runs deconvolution, currently set up for human colon tissue.
 
-pairedEnd: TRUE
+# pairedEnd: TRUE
 # TRUE if input samples were sequenced paired-end
+# NOTE: Pipeline not currently set up to handle single-end data
 
 countGeneSymbols: "tx2gene_ensembl"
 # supports "tx2gene_ensembl" or "tx2gene_symbol". I recommend using ensembl

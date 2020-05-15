@@ -130,7 +130,7 @@ if config["useSRA"]:
             "results/{sample}/fastq/{sample}_1.fastq.gz",
             "results/{sample}/fastq/{sample}_2.fastq.gz"
         params:
-            fastq_dir = "fastq/",
+            fastq_dir = "results/{sample}/fastq/",
             other_flags = "--split-files"
         log:
             "results/{sample}/logs/fastq_dump.log"
@@ -139,13 +139,8 @@ if config["useSRA"]:
             module load sratoolkit/2.10.1
             fastq-dump {params.other_flags} -L 5 -O {params.fastq_dir} {input} \
               > {log}
-            gzip fastq/{wildcards.sample}_1.fastq
-            gzip fastq/{wildcards.sample}_2.fastq
-            mkdir results/{wildcards.sample}/fastq
-            ln -s fastq/{wildcards.sample}_1.fastq.gz \
-              results/{wildcards.sample}/fastq/{wildcards.sample}_1.fastq.gz
-            ln -s fastq/{wildcards.sample}_2.fastq.gz \
-              results/{wildcards.sample}/fastq/{wildcards.sample}_2.fastq.gz
+            gzip results/{wildcards.sample}/fastq/{wildcards.sample}_1.fastq
+            gzip results/{wildcards.sample}/fastq/{wildcards.sample}_2.fastq
             """
 
 # if config["fastqR1"]:

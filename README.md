@@ -24,7 +24,7 @@ snakemake --rulegraph | dot -Tpng > Snakemake_graph.png
 To run the pipeline completely, use:
 
 ```
-sbatch -o snakePipe.log -t 1-0 --wrap='snakemake --printshellcmds --jobs=25 \
+sbatch -o snakePipe.log -e snakePipe.err -t 1-0 -J snakePipe --wrap='snakemake --printshellcmds --jobs=25 \
 --cluster-config cluster_config.json --cluster "sbatch --mem={cluster.mem} \
 -t {cluster.time} -n {cluster.ntasks} -o {cluster.output} -e {cluster.err} \
 -J {cluster.jobname}"'

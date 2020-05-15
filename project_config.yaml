@@ -1,3 +1,5 @@
+# For use with the Furey RNA-seq Snakemake pipeline 1.0
+
 ######################################
 #### analysis-specific parameters ####
 ######################################
@@ -5,11 +7,20 @@
 ###
 # Analysis set up
 ###
+
 analysis:
-  name: "Furey_analysis"
+  name: "Furey_analysis" # summary files will be produced using this name.
   organism: "human" #supports "human"/"mouse"
   genomeBuild: "hg38" #supports hg38 (GRCh38) and hg19 (GRCh37)
+# NOTE: support for additional organisms be added by creating indexs and
+# required files in the "genome indexes" section at the bottom of the configFn
+# The Pipeline Indexing SOP can be used to guide the creation of these files.
 
+# For local file run, paths need to provided to the base sample directory.
+# The pipeline expects this sample directory to contain a "fastq" directory with
+# two gzipped fastq files.
+# At the time of creating the pipeline, all fastq files could be identifed as
+# read1/read2 through "*_RX_*" or "*X.f*q.gz" regexs, where X is 1 or 2.
 samples:
   - /proj/fureylab/data/RNA-seq/human/colon_tissue/nonIBD/172/
   - /proj/fureylab/data/RNA-seq/human/colon_tissue/nonIBD/174/
@@ -21,7 +32,7 @@ samples:
 useSRA: FALSE
 # True if input consists of SRA IDs.
 
-moveOutFiles: TRUE
+moveOutFiles: FALSE
 # Moves results files for locally run samples to permenant space.
 # NOTE: set to true after running the pipeline, checking that everything
 # had run correctly, and then rerun the pipeline using the same submission
@@ -37,12 +48,15 @@ pairedEnd: TRUE
 # TRUE if input samples were sequenced paired-end
 
 countGeneSymbols: "tx2gene_ensembl"
-# Regarding the transcript to gene level conversion step.
-# Instead of ensembl gene ID names, HGNC gene symbols will be
-# generated instead. NOTE: This is not available for all genomes,
-# and so is off by default. Check the software parameters section
-# of the snakemake project_config.yaml file to see whether the HGNC
-# tx2gene file is available for the genome of interest.
+# supports "tx2gene_ensembl" or "tx2gene_symbol". I recommend using ensembl
+# as it is will be easier to convert to any other gene format from ensembl
+# compared to gene symbols.
+# NOTE: This is regarding the transcript to gene level conversion step in matrix generation.
+# Instead of ensembl gene ID names, HGNC gene symbols can be generated instead.
+# NOTE: This may not be available for all genomes, and so is set to ensembl by
+# default. Check the software parameters section of the snakemake
+# project_config.yaml file to see whether the HGNC tx2gene file is available
+# for the genome of interest.
 
 #############################
 #### Software parameters ####
@@ -96,13 +110,15 @@ bamCoverage:
   normalizeUsing: RPKM
   ignoreForNormalization: 'chrX chrY'
 
-#genome indexes - !!! hg19/hg38 STAR/SALMON INDEXES BUILT FOR PRIMARLY 50BP READS!!!
-#commands use to build these indexes are in X SOP
+########################
+#### Genome indexes ####
+########################
+# NOTE: hg19/hg38 STAR/SALMON INDEXES BUILT FOR PRIMARLY 50BP READS!!!
+# Commands use to build these indexes are in the RNA-seq Indexing Pipeline SOP
 
 hg19:
   salmonIndex: /proj/fureylab/genomes/human/hg19_reference/hg19_salmon_1.1.0
   starIndex: /proj/fureylab/genomes/human/hg19_reference/hg19_star_2.7.3a
-  rsemIndex: /proj/fureylab/genomes/human/hg19_reference/hg19_star_2.7.3a
   rseqcModel: /proj/fureylab/genomes/human/hg19_reference/houseKeepingGenes/hg19.HouseKeepingGenes.bed
   multiqcConfig: bin/multiqc_config_hg19.yaml
   featureFile: /proj/fureylab/genomes/human/hg19_reference/RNA_annotation/gencode.v34lift37.annotation.gtf.gz
@@ -111,14 +127,32 @@ hg19:
 hg38:
   salmonIndex: /proj/fureylab/genomes/human/hg38_reference/hg38_salmon_1.1.0
   starIndex: /proj/fureylab/genomes/human/hg38_reference/hg38_star_2.7.3a
-  rsemIndex: /proj/fureylab/genomes/human/hg38_reference/hg38_star_2.7.3a
   rseqcModel: /proj/fureylab/genomes/human/hg38_reference/houseKeepingGenes/hg38.HouseKeepingGenes.bed
   multiqcConfig: bin/multiqc_config_hg38.yaml
   featureFile: /proj/fureylab/genomes/human/hg38_reference/RNA_annotation/gencode.v34.annotation.gtf.gz
   tx2gene_ensembl: /proj/fureylab/genomes/human/hg38_reference/RNA_annotation/tx2gene.GRCh38.ENSEMBL.csv
   tx2gene_symbol: /proj/fureylab/genomes/human/hg38_reference/RNA_annotation/tx2gene.GRCh38.HGNC.csv
-
-# mouse:
-#   build:
-#     salmonIndex:
-#     starIndex:
+mm9:
+  salmonIndex:
+  starIndex:
+  rseqcModel:
+  multiqcConfig:
+  featureFile:
+  tx2gene_ensembl:
+  tx2gene_symbol:
+mm10:
+  salmonIndex:
+  starIndex:
+  rseqcModel:
+  multiqcConfig:
+  featureFile:
+  tx2gene_ensembl:
+  tx2gene_symbol:
+CC027:
+  salmonIndex:
+  starIndex:
+  rseqcModel:
+  multiqcConfig:
+  featureFile:
+  tx2gene_ensembl:
+  tx2gene_symbol:

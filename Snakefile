@@ -1,5 +1,5 @@
 # Ben Keith
-# last updated 2020.05.07
+# Last updated 2020.05.15
 # Furey Lab Pipeline 2020
 # Snakemake 1.0
 
@@ -12,7 +12,6 @@ import glob
 shell.prefix("module load python/2.7.12; ")
 
 configfile: "project_config.yaml"
-# [os.makedirs("results/" + str(i) + "/logs", exist_ok=True) for i in config["samples"]]
 
 #genome variables
 configFilename = "project_config.yaml"
@@ -20,8 +19,16 @@ analysisName = config["analysis"]["name"]
 organism = config["analysis"]["organism"]
 genomeBuild = config["analysis"]["genomeBuild"]
 
-#sample/path variables
-
+# Rather than setting rules for file handling and wrangling, it thought it
+# much easier to use a bit of python before executing the pipline.
+# These lines handle setting up fastq directories for either SRA or local files
+# inputs.
+# The config["moveOutFiles"] conditional loop handles the moving of processed
+# files to the directory specificed in the configuration file. As mentioned in
+# the README and config file, this flag should only be set AFTER the pipline
+# has finished. Nothing will be copied if this is set as the pipeline runs, but
+# for safety it is best to move the files after the pipeline has successfully
+# finished.
 if config["useSRA"]:
     samples = config["samples"]
     [os.makedirs("results/" + str(sample) + "/logs", exist_ok=True) for sample in samples]
@@ -29,13 +36,13 @@ else:
     samplePaths = config["samples"]
     samplePaths = [i[:-1] for i in samplePaths if i.endswith('/')]
     samples = [i.rsplit('/', 1)[1] for i in samplePaths]
-    # fastqPaths = [str(i + '/fastq') for i in paths]
-    #print(samples)
+
     [os.makedirs("results/" + str(sample) + "/logs", exist_ok=True) for sample in samples]
     [os.makedirs("results/" + str(sample) + "/fastq", exist_ok=True) for sample in samples]
 
     for path in samplePaths:
         samp = str(path.rsplit('/', 1)[1])
+
         if config["moveOutFiles"]:
             os.makedirs(str(path) + "/snakemakeRNA", exist_ok=True)
             print("Moving final files...")
@@ -45,41 +52,18 @@ else:
             print("Files moved! Exiting...")
 
         for file in glob.glob(str(path + "/fastq/*gz")):
-
             if "_R1_" in file or file.endswith("_1.f*q.gz"):
                 cmd = "ln -s " + str(file) + " results/" + \
                   samp + "/fastq/" + samp + "_1.fastq.gz" +  " >/dev/null 2>&1"
-                #print(cmd)
                 os.system(cmd)
             else:
                 cmd = "ln -s " + str(file) + " results/" + \
                   samp + "/fastq/" + samp + "_2.fastq.gz" +  " >/dev/null 2>&1"
-                #print(cmd)
                 os.system(cmd)
 
-    # paths = config["paths"]
-    # fastqPaths = [str(i + '/fastq') for i in paths]
-    # paths = [i[:-1] for i in paths if i.endswith('/')]
-    # samples = [i.rsplit('/', 1)[1] for i in paths]
-    #
-    # [os.makedirs("results/" + str(i) + "/logs", exist_ok=True) for i in samples]
-    # [os.makedirs("results/" + str(i) + "/fastq", exist_ok=True) for i in samples]
-    #
-    # paths = [i.rsplit('/', 1)[0] for i in paths]
-    # for path in fastqPaths:
-    #     for file in glob.glob(str(path + "/*gz")):
-    #         os.system('ln -s file ')
-
-# print(fastqPaths)
-# print(paths)
-# print(samples)
-
-
-# [os.makedirs("results/" + str(i) + "/logs", exist_ok=True) for i in samples]
-
-##################
-#### Pipeline ####
-##################
+################################################################################
+################################### Pipeline ###################################
+################################################################################
 
 ####################
 #### all target ####
@@ -92,11 +76,17 @@ rule all:
         "results/counts/" + analysisName + ".txi.rds",
         expand("results/{sample}/logs/cleanup.log", sample=samples)
 
-##########################
-#### Checkpoint rules ####
-##########################
+############################
+#### "Checkpoint rules" ####
+############################
+# These sets of rules are usually needed prior to a job that is executed only
+# once. For most rules in the pipeline, a separate job is submitted for each
+# sample. For example, Jobs like multiqc requires every prior QC job to be
+# finished. Using a rule like below can output a single file that can be used
+# as the dependency. I've found this to be a bit safer in testing that Using
+# the individual samples as the dependecy.
 
-# StarSalmon flag.s
+# StarSalmon flag
 rule alignmentQuantification:
     input:
         "results/{sample}/{sample}.salmon/quant.sf",
@@ -105,6 +95,7 @@ rule alignmentQuantification:
     output:
         touch("temp/starSalmon_run.flag")
 
+# QC complete flag
 rule QC:
     input:
         expand("results/{sample}/QC/qualimap/{sample}.rnaseq/qualimapReport.html",
@@ -129,6 +120,7 @@ rule QC:
 #################################################
 
 if config["useSRA"]:
+    # fetching .sra files based on IDs provided in the config file
     rule prefetch:
         output:
             "temp/{sample}/fastq/{sample}.sra"
@@ -140,6 +132,7 @@ if config["useSRA"]:
             prefetch -L 5 -o {output} {wildcards.sample} > {log}
             """
 
+    # Splitting the .sra file into .fastq files and zipping them up.
     rule fastq_dump:
         input:
             "temp/{sample}/fastq/{sample}.sra"
@@ -165,57 +158,11 @@ if config["useSRA"]:
               results/{wildcards.sample}/fastq/{wildcards.sample}_2.fastq.gz
             """
 
-# if config["fastqR1"]:
-#     rule fastq_links:
-#         input:
-#             R1 = expand("{path}/{sample}/fastq/{prepend}_R1_{sampleInfo}.f{fastq}q.gz",
-#                      path = paths, sample = samples, allow_missing=True),
-#             R2 = expand("{path}/{sample}/fastq/{prepend}_R2_{sampleInfo}.f{fastq}q.gz",
-#                      path = paths, sample = samples, allow_missing=True)
-#         output:
-#             "results/{sample}/fastq/{sample}_1.fastq.gz",
-#             "results/{sample}/fastq/{sample}_2.fastq.gz"
-#         log:
-#             "results/{sample}/logs/fastq_links.log"
-#         shell:
-#             """
-#             ln -s {input.R1} \
-#               results/{wildcards.sample}/fastq/{wildcards.sample}_1.fastq.gz > {log}
-#             ln -s {input.R2} \
-#               results/{wildcards.sample}/fastq/{wildcards.sample}_2.fastq.gz >> {log}
-#               """
-#
-# else:
-#     rule fastq_links:
-#         input:
-#             R1 = "{path}/{sample}/fastq/*1.f*q*.gz",
-#             R2 = "{path}/{sample}/fastq/*2.f*q*.gz"
-#         output:
-#             "results/{sample}/fastq/{sample}_1.fastq.gz",
-#             "results/{sample}/fastq/{sample}_2.fastq.gz"
-#         log:
-#             "results/{sample}/logs/fastq_links.log"
-#         shell:
-#             """
-#             ln -s {input.R1} \
-#               results/{wildcards.sample}/fastq/{wildcards.sample}_1.fastq.gz > {log}
-#             ln -s {input.R2} \
-#               results/{wildcards.sample}/fastq/{wildcards.sample}_2.fastq.gz >> {log}
-#             """
-
-# else:
-#     rule fastq_links:
-#         output:
-#             "results/{sample}/fastq/{sample}_1.fastq.gz",
-#             "results/{sample}/fastq/{sample}_2.fastq.gz"
-#         log:
-#             "results/{sample}/logs/fastq_links.log"
-#         run:
-
 ##################################
 #### Preprocessing - cutadapt ####
 ##################################
 
+# Remove adaptors.
 rule cutadapt:
     input:
         fastq1 = "results/{sample}/fastq/{sample}_1.fastq.gz",
@@ -246,59 +193,48 @@ rule cutadapt:
 ##################################################
 #### Alignment and quantification - STAR/rsem ####
 ##################################################
+# NOTE: Not currently avaible, but can be added based on commands used in
+# previous RNA-seq pipeline
+# If this is incorporated in the future, you should be able to use the
+# star indexes that have already been generated.
 
 # if config["quantification"] == "rsem":
 #     rule rsem:
 #         input:
-#             fastq1 = "raw/fastq/{sample}_1.fastq.gz",
-#             fastq2 = "raw/fastq/{sample}_2.fastq.gz"
+#             ""
 #         output:
-#             "results/rsem/{sample}.genes.results",
-#             directory("temp/rsem/{sample}"),
-#             "results/rsem/{sample}.genome.bam"
+#             ""
 #         params:
-#             otherFlags = config["rsem"]["otherFlags"],
-#             tempFolder = "temp/rsem/{sample}",
-#             outPrefix = "results/rsem/{sample}",
-#             threads = config["rsem"]["threads"],
-#             reference = config["rsem"]["reference"]
+#             param1 = ""
 #         log:
-#             "results/{sample}/logs/rsem/{sample}.log"
+#             ""
 #         shell:
 #             """
-#             module load star/2.7.0e
-#             module load rsem/1.2.31
-#             rsem-calculate-expression {params.otherFlags} --num-threads {params.threads} \
-#               --temporary-folder {params.tempFolder} \
-#               {input.fastq1} {input.fastq2} {params.reference} \
-#               {params.outPrefix} >{log}
+#
 #             """
 #
 #     rule rsem_bam_sort:
 #         input:
-#             results = "results/rsem/{sample}.genes.results",
-#             bam = "results/rsem/{sample}.genome.bam"
+#             ""
 #         output:
-#             "results/rsem/{sample}.genome.sorted.bam"
+#             ""
 #         log:
-#             "results/{sample}/logs/samtools_sort/{sample}.log"
+#             ""
 #         shell:
 #             """
-#             module load samtools/1.9
-#             samtools sort {input.bam} -o {output} >{log}
+#
 #             """
 #
 #     rule rsem_bam_index:
 #         input:
-#             "results/rsem/{sample}.genome.sorted.bam"
+#             ""
 #         output:
-#             "results/rsem/{sample}.genome.sorted.bam.bai"
+#             ""
 #         log:
-#             "results/{sample}/logs/samtools_index/{sample}.log"
+#             ""
 #         shell:
 #             """
-#             module load samtools/1.9
-#             samtools index {input}
+#
 #             """
 
 ####################################################
@@ -306,6 +242,15 @@ rule cutadapt:
 ####################################################
 
 if config["quantification"] == "salmon":
+
+    # Aligning adaptor trimmed reads using star. This rule performs a number of
+    # steps:
+    # 1. Perform star alignment
+    # 2. Indexing of output bam files
+    # 3. Copying bam to temp dir (necessary for proper multiqc processing) AND
+    #    reindexing this file to prevent "old index" warning messages
+    # 4. Copying of feature file (.gtf) to temp directory and unzip for QC
+    # 5. Moving of star log files to the proper directory.
     rule star:
         input:
             fastq1 = "temp/{sample}/fastq/{sample}_1.fastq.trimmed.gz",
@@ -356,6 +301,7 @@ if config["quantification"] == "salmon":
               results/{wildcards.sample}/logs/star/
             """
 
+    # Salmon quantification
     rule salmon:
         input:
             fastq1 = "temp/{sample}/fastq/{sample}_1.fastq.trimmed.gz",
@@ -389,6 +335,7 @@ if config["quantification"] == "salmon":
             rm -r {params.outDir}/logs
             """
 
+    # Conversion of salmon output sam file to bam, followed by indexing.
     rule salmon_sam:
         input:
             "temp/{sample}/salmon/{sample}.aligned.sam"
@@ -415,8 +362,9 @@ if config["quantification"] == "salmon":
 #### Post-quantification ####
 #############################
 
-#if config["countMatrix"]:
+# dir needed before execution of the rule
 os.makedirs("results/counts", exist_ok=True)
+# Runs an R script to generate count matrices for downstream processing.
 rule matrixGeneration:
     input:
         expand("results/{sample}/{sample}.salmon/quant.sf", sample=samples)
@@ -441,12 +389,17 @@ rule matrixGeneration:
           --txi {params.txi} --pipeline > {log}
         """
 
+# NOTE: deconvolution will have to be added after samples are reprocessed
+# The samples that are used in decolvolution reqire a little bit of
+# proprocessing before they can be used for new samples.
 # rule deconvolution:
 #     input:
 #     output:
 #     log:
 #     shell:
 
+# Deeptools bamCoverage is used to create a bigWig file for RNA-seq
+# visualisation on the genome browser.
 rule bamCoverage:
     input:
         "temp/{sample}.Aligned.sortedByCoord.out.bam"
@@ -470,6 +423,7 @@ rule bamCoverage:
 #### Quality control ####
 #########################
 
+# Standard fastqc.
 rule fastqc:
     input:
         "results/{sample}/fastq/{sample}_{pair}.fastq.gz"
@@ -488,13 +442,16 @@ rule fastqc:
           results/{wildcards.sample}/QC/fastqc/
         """
 
+# dir needed before execution of the rule
 os.makedirs("results/multiqc_raw", exist_ok=True)
+# This multiqc using just the fastqc results. This serves as a way to quickly
+# view a QC report as the pipeline is still processing.
 rule multiqc_raw:
     input:
         expand("results/{sample}/QC/fastqc/{sample}_{pair}_fastqc.zip",
             sample=samples, pair=["1","2"])
     output:
-        "results/multiqc_raw/multiqc_raw.html"
+        "results/multiqc_raw/" +config["analysis"]["name"] +"_multiqc_raw.html"
     log:
         "results/multiqc_raw/multiqc_raw.log"
     shell:
@@ -503,6 +460,7 @@ rule multiqc_raw:
         multiqc -n {output} results/*/QC/fastqc > {log}
         """
 
+# fastq_screen can be used to identify potential contamination within a sample.
 rule fastQscreen:
     input:
         "results/{sample}/fastq/{sample}_{pair}.fastq.gz"
@@ -525,6 +483,7 @@ rule fastQscreen:
           --outdir {params.outDir} --subset {params.subset} {input} > {log}
         """
 
+# Running junction_saturation and tin score portions of rseqc.
 rule rseqc:
     input:
         "temp/{sample}.Aligned.sortedByCoord.out.bam"
@@ -546,6 +505,7 @@ rule rseqc:
         mv {wildcards.sample}* results/{wildcards.sample}/QC/rseqc
         """
 
+# Running the bamqc portion of qualimap
 rule QM_bamqc:
     input:
         "temp/{sample}.Aligned.sortedByCoord.out.bam"
@@ -573,6 +533,7 @@ rule QM_bamqc:
           --java-mem-size={params.javaMemSize} {params.otherFlags} > {log}
         """
 
+# Running the bamqc portion of qualimap
 rule QM_rnaseq:
     input:
         "temp/{sample}.Aligned.sortedByCoord.out.bam"
@@ -598,12 +559,15 @@ rule QM_rnaseq:
         {params.otherFlags} > {log}
         """
 
+# dir needed before execution of the rule
 os.makedirs("results/multiqc", exist_ok=True)
+# multiqc is performed after all previous jobs are completed. This will produce
+# a single report incorporating all QC reports for all samples in the run.
 rule multiqc:
     input:
         "temp/QC_complete.flag"
     output:
-        html = "results/multiqc/multiqc.html",
+        html = "results/multiqc/" +config["analysis"]["name"] +"_multiqc.html",
         data = directory("results/multiqc/multiqc_data")
     params:
         configFile = config[genomeBuild]["multiqcConfig"]
@@ -619,7 +583,7 @@ rule multiqc:
 #### CLEAN UP AND MOVING ####
 #############################
 
-# For the purposes of multiqc, some directories had to be sample specific
+# For the purposes of multiqc, some directories had to have sample specific names
 # This rule fixes those names.
 rule name_clean:
     input:
@@ -645,21 +609,3 @@ rule name_clean:
           results/{wildcards.sample}/QC/qualimap/bamqc
         cp project_config.yaml results/{wildcards.sample}
         """
-
-# if config["moveOutFiles"]:
-#
-#     rule moveOut:
-#         input:
-#             "temp/{sample}/name_clean_complete.flag"
-#         output:
-#             expand("{path}/snakemakeRNA/QC/qualimap/bamqc/qualimapReport.html",
-#                 , path=samplePaths)
-#         log:
-#             "{path}/snakemakeRNA/moveOut.log"
-#         shell:
-#             """
-#             mkdir results/{wildcards.sample}/snakemakeRNA
-#             mv results/{wildcards.sample}/* results/{wildcards.sample}/snakemakeRNA
-#             cp -rf results/{wildcards.sample}/snakemakeRNA \
-#               {wildcards.path}/snakemakeRNA
-#             """

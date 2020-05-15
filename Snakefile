@@ -24,19 +24,28 @@ genomeBuild = config["analysis"]["genomeBuild"]
 
 if config["useSRA"]:
     samples = config["samples"]
-    [os.makedirs("results/" + str(i) + "/logs", exist_ok=True) for i in samples]
+    [os.makedirs("results/" + str(sample) + "/logs", exist_ok=True) for sample in samples]
 else:
     samplePaths = config["samples"]
     samplePaths = [i[:-1] for i in samplePaths if i.endswith('/')]
     samples = [i.rsplit('/', 1)[1] for i in samplePaths]
     # fastqPaths = [str(i + '/fastq') for i in paths]
     #print(samples)
-    [os.makedirs("results/" + str(i) + "/logs", exist_ok=True) for i in samples]
-    [os.makedirs("results/" + str(i) + "/fastq", exist_ok=True) for i in samples]
+    [os.makedirs("results/" + str(sample) + "/logs", exist_ok=True) for sample in samples]
+    [os.makedirs("results/" + str(sample) + "/fastq", exist_ok=True) for sample in samples]
 
     for path in samplePaths:
+        samp = str(path.rsplit('/', 1)[1])
+        if config["moveOutFiles"]:
+            os.makedirs(str(path) + "/snakemakeRNA", exist_ok=True)
+            print("Moving final files...")
+            cmd = "cp -rf results/" + str(samp) + "/* " + str(path) + "/snakemakeRNA"
+            os.system(cmd)
+            print("moved sample " + str(samp))
+            print("Files moved! Exiting...")
+
         for file in glob.glob(str(path + "/fastq/*gz")):
-            samp = str(path.rsplit('/', 1)[1])
+
             if "_R1_" in file or file.endswith("_1.f*q.gz"):
                 cmd = "ln -s " + str(file) + " results/" + \
                   samp + "/fastq/" + samp + "_1.fastq.gz" +  " >/dev/null 2>&1"
@@ -72,12 +81,20 @@ else:
 #### Pipeline ####
 ##################
 
+####################
+#### all target ####
+####################
+
 # Target to run whole workflow:
 rule all:
     input:
         "results/multiqc/multiqc.html",
         "results/counts/" + analysisName + ".txi.rds",
         expand("results/{sample}/logs/cleanup.log", sample=samples)
+
+##########################
+#### Checkpoint rules ####
+##########################
 
 # StarSalmon flag.s
 rule alignmentQuantification:
@@ -130,7 +147,7 @@ if config["useSRA"]:
             "results/{sample}/fastq/{sample}_1.fastq.gz",
             "results/{sample}/fastq/{sample}_2.fastq.gz"
         params:
-            fastq_dir = "results/{sample}/fastq/",
+            fastq_dir = "fastq/",
             other_flags = "--split-files"
         log:
             "results/{sample}/logs/fastq_dump.log"
@@ -139,8 +156,13 @@ if config["useSRA"]:
             module load sratoolkit/2.10.1
             fastq-dump {params.other_flags} -L 5 -O {params.fastq_dir} {input} \
               > {log}
-            gzip results/{wildcards.sample}/fastq/{wildcards.sample}_1.fastq
-            gzip results/{wildcards.sample}/fastq/{wildcards.sample}_2.fastq
+            gzip fastq/{wildcards.sample}_1.fastq
+            gzip fastq/{wildcards.sample}_2.fastq
+            mkdir results/{wildcards.sample}/fastq
+            ln -s fastq/{wildcards.sample}_1.fastq.gz \
+              results/{wildcards.sample}/fastq/{wildcards.sample}_1.fastq.gz
+            ln -s fastq/{wildcards.sample}_2.fastq.gz \
+              results/{wildcards.sample}/fastq/{wildcards.sample}_2.fastq.gz
             """
 
 # if config["fastqR1"]:
@@ -593,9 +615,9 @@ rule multiqc:
         multiqc -n {output.html} -c {params.configFile} . > {log}
         """
 
-##################
-#### CLEAN UP ####
-##################
+#############################
+#### CLEAN UP AND MOVING ####
+#############################
 
 # For the purposes of multiqc, some directories had to be sample specific
 # This rule fixes those names.
@@ -609,7 +631,8 @@ rule name_clean:
     output:
         directory("results/{sample}/salmon"),
         directory("results/{sample}/QC/qualimap/rnaseq"),
-        directory("results/{sample}/QC/qualimap/bamqc")
+        directory("results/{sample}/QC/qualimap/bamqc"),
+        touch("temp/{sample}/name_clean_complete.flag")
     log:
         "results/{sample}/logs/cleanup.log"
     shell:
@@ -622,3 +645,21 @@ rule name_clean:
           results/{wildcards.sample}/QC/qualimap/bamqc
         cp project_config.yaml results/{wildcards.sample}
         """
+
+# if config["moveOutFiles"]:
+#
+#     rule moveOut:
+#         input:
+#             "temp/{sample}/name_clean_complete.flag"
+#         output:
+#             expand("{path}/snakemakeRNA/QC/qualimap/bamqc/qualimapReport.html",
+#                 , path=samplePaths)
+#         log:
+#             "{path}/snakemakeRNA/moveOut.log"
+#         shell:
+#             """
+#             mkdir results/{wildcards.sample}/snakemakeRNA
+#             mv results/{wildcards.sample}/* results/{wildcards.sample}/snakemakeRNA
+#             cp -rf results/{wildcards.sample}/snakemakeRNA \
+#               {wildcards.path}/snakemakeRNA
+#             """

@@ -51,7 +51,7 @@ else:
             os.system(cmd)
             print("moved sample " + str(samp))
             print("Files moved! Exiting...")
-        
+
         for file in glob.glob(str(path + "/fastq/*gz")):
             if "_R1_" in file or re.search("_1\.f*q\.gz$", file):
                 cmd = "ln -s " + str(file) + " results/" + \
@@ -61,6 +61,11 @@ else:
                 cmd = "ln -s " + str(file) + " results/" + \
                   samp + "/fastq/" + samp + "_2.fastq.gz" +  " >/dev/null 2>&1"
                 os.system(cmd)
+
+#setting up for the feature file for QC
+if not path.exists('temp/*gtf'):
+    cmd = "mkdir temp; cp " + config[genomeBuild]["featureFile"] + " temp; gunzip temp/*gtf.gz"
+    os.system(cmd)
 
 ################################################################################
 ################################### Pipeline ###################################
@@ -250,8 +255,7 @@ if config["quantification"] == "salmon":
     # 2. Indexing of output bam files
     # 3. Copying bam to temp dir (necessary for proper multiqc processing) AND
     #    reindexing this file to prevent "old index" warning messages
-    # 4. Copying of feature file (.gtf) to temp directory and unzip for QC
-    # 5. Moving of star log files to the proper directory.
+    # 4. Moving of star log files to the proper directory.
     rule star:
         input:
             fastq1 = "temp/{sample}/fastq/{sample}_1.fastq.trimmed.gz",
@@ -291,8 +295,6 @@ if config["quantification"] == "salmon":
               temp
             samtools index \
               temp/{wildcards.sample}.Aligned.sortedByCoord.out.bam
-            rm temp/*gtf*; cp {params.featureFile} temp; gunzip temp/*gtf.gz \
-              >/dev/null 2>&1
 
             mv {params.outFileNamePrefix}Log.final.out \
               results/{wildcards.sample}/logs/star/

@@ -1,6 +1,0 @@
-jobs: 100
-cluster: "sbatch -t {resources.time} --mem={resources.mem} -n {resources.threads} \
-         -o results/{wildcards.sample}/logs/{rule}_SLURM.out \
-         -e results/{wildcards.sample}/logs/{rule}_SLURM.err \
-         -J {rule}_{wildcards.sample}"
-default-resources: [threads=1, mem=10GB, time=03:00:00]

@@ -9,6 +9,7 @@
 
 import os
 import glob
+import re
 shell.prefix("module load python/2.7.12; ")
 
 configfile: "project_config.yaml"
@@ -34,7 +35,7 @@ if config["useSRA"]:
     [os.makedirs("results/" + str(sample) + "/logs", exist_ok=True) for sample in samples]
 else:
     samplePaths = config["samples"]
-    samplePaths = [i[:-1] for i in samplePaths if i.endswith('/')]
+    samplePaths = [re.sub(r"\W+$", "", i) for i in samplePaths]
     samples = [i.rsplit('/', 1)[1] for i in samplePaths]
 
     [os.makedirs("results/" + str(sample) + "/logs", exist_ok=True) for sample in samples]
@@ -50,9 +51,9 @@ else:
             os.system(cmd)
             print("moved sample " + str(samp))
             print("Files moved! Exiting...")
-
+        
         for file in glob.glob(str(path + "/fastq/*gz")):
-            if "_R1_" in file or file.endswith("_1.f*q.gz"):
+            if "_R1_" in file or re.search("_1\.f*q\.gz$", file):
                 cmd = "ln -s " + str(file) + " results/" + \
                   samp + "/fastq/" + samp + "_1.fastq.gz" +  " >/dev/null 2>&1"
                 os.system(cmd)

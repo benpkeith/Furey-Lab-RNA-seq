@@ -8,6 +8,12 @@ fn_clean_exts:
     - '_1.fastq'
     - '_2.fastq'
 
+fn_ignore_files:
+    - '*2_screen.txt'
+    - '*2_fastqc.zip'
+    - '*2_fastqc.html'
+    - '*2_fastqc_data.txt'
+
 plots_force_interactive: TRUE
 
 fastqc_config:

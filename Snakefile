@@ -10,6 +10,8 @@
 import os
 import glob
 import re
+import os.path
+from os import path
 shell.prefix("module load python/2.7.12; ")
 
 configfile: "project_config.yaml"
@@ -63,7 +65,7 @@ else:
                 os.system(cmd)
 
 #setting up for the feature file for QC
-if not path.exists('temp/*gtf'):
+if not glob.glob('temp/*gtf'):
     cmd = "mkdir temp; cp " + config[genomeBuild]["featureFile"] + " temp; gunzip temp/*gtf.gz"
     os.system(cmd)
 
@@ -255,7 +257,8 @@ if config["quantification"] == "salmon":
     # 2. Indexing of output bam files
     # 3. Copying bam to temp dir (necessary for proper multiqc processing) AND
     #    reindexing this file to prevent "old index" warning messages
-    # 4. Moving of star log files to the proper directory.
+    # 4. Copying of feature file (.gtf) to temp directory and unzip for QC
+    # 5. Moving of star log files to the proper directory.
     rule star:
         input:
             fastq1 = "temp/{sample}/fastq/{sample}_1.fastq.trimmed.gz",
@@ -571,7 +574,7 @@ rule multiqc:
         "temp/QC_complete.flag"
     output:
         html = "results/multiqc/" +config["analysis"]["name"] +"_multiqc.html",
-        data = directory("results/multiqc/multiqc_data")
+        data = directory("results/multiqc/" +config["analysis"]["name"] +"_multiqc_data")
     params:
         configFile = config[genomeBuild]["multiqcConfig"]
     log:

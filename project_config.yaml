@@ -1,10 +1,10 @@
 # For use with the Furey RNA-seq Snakemake pipeline 1.0
 
-# 1. Fill in analysis fileds
-# 2. Add samples for analysis
+# 1. Fill in "analysis" fields
+# 2. Add samples for analysis in "samples" section
 # 3. Double check flags and options
 # 4. Update star's "sjdbOverhang" paramter to match star index.
-# 5. Update salmon's "libType", if needed (https://salmon.readthedocs.io/en/latest/library_type.html)
+# 5. Update salmon's "libType", if needed (https://salmon.readthedocs.io/en/latest/library_type.html). Currently set for automatic detection.
 
 ######################################
 #### analysis-specific parameters ####
@@ -15,9 +15,9 @@
 ###
 
 analysis:
-  name: "Peanut_rna" # summary files will be produced using this name.
-  organism: "mouse" #supports "human"/"mouse"
-  genomeBuild: "CC027" #supports hg38 (GRCh38) and hg19 (GRCh37)
+  name: "Furey_analysis" # summary files will be produced using this name.
+  organism: "human" #supports "human"/"mouse"
+  genomeBuild: "hg38" #supports hg38 (GRCh38), hg19 (GRCh37), and CC027
 # NOTE: support for additional organisms be added by creating indexs and
 # required files in the "genome indexes" section at the bottom of the configFn
 # The Pipeline Indexing SOP can be used to guide the creation of these files.
@@ -54,6 +54,7 @@ quantification: salmon
 
 deconvolution: FALSE
 # Runs deconvolution, currently set up for human colon tissue.
+# NOTE: Currently missing the deconvolution rule in pipeline v1.
 
 # pairedEnd: TRUE
 # TRUE if input samples were sequenced paired-end
@@ -93,15 +94,14 @@ star:
 
 # https://salmon.readthedocs.io/en/latest/salmon.html
 salmon:
-  libType: ISR
+  libType: A
   threads: 8
   numBootstraps: 10
   otherFlags: "--seqBias --gcBias --validateMappings --writeUnmappedNames"
 
-rsem:
-  threads: 8
-  reference: reference/hg38_rsem/rsem_hg38
-  otherFlags: "--paired-end --star --output-genome-bam --keep-intermediate-files  --star-gzipped-read-file"
+# rsem:
+#   threads: 8
+#   otherFlags: "--paired-end --star --output-genome-bam --keep-intermediate-files  --star-gzipped-read-file"
 
 fastqc:
   threads: 1
@@ -111,16 +111,16 @@ fastQscreen:
   subset: 1000000
   aligner: "bowtie2"
 
-multiqc:
-  configFile: bin/multiqc_config_hg38.yaml
-
-rseqc:
-  modelFile: bin/hg38.HouseKeepingGenes.bed
-
 bamCoverage:
   binSize: 10
   normalizeUsing: RPKM
   ignoreForNormalization: 'chrX chrY'
+
+qualimap:
+  seqProtocol: "non-strand-specific"
+  rnaseqFlags: "--paired"
+  bamqcFlags: "--collect-overlap-pairs"
+  javaMemSize: "4G"
 
 ########################
 #### Genome indexes ####
@@ -131,7 +131,7 @@ bamCoverage:
 hg19:
   salmonIndex: /proj/fureylab/genomes/human/hg19_reference/hg19_salmon_1.1.0
   starIndex: /proj/fureylab/genomes/human/hg19_reference/hg19_star_2.7.3a
-  rseqcModel: /proj/fureylab/genomes/human/hg19_reference/houseKeepingGenes/hg19.HouseKeepingGenes.bed
+  rseqcModel: /proj/fureylab/genomes/human/hg19_reference/geneModel/hg19.genes.sorted.bed12
   multiqcConfig: bin/multiqc_config_hg19.yaml
   featureFile: /proj/fureylab/genomes/human/hg19_reference/RNA_annotation/gencode.v34lift37.annotation.gtf.gz
   tx2gene_ensembl: /proj/fureylab/genomes/human/hg19_reference/RNA_annotation/tx2gene.GRCh37.ENSEMBL.csv
@@ -139,7 +139,7 @@ hg19:
 hg38:
   salmonIndex: /proj/fureylab/genomes/human/hg38_reference/hg38_salmon_1.1.0
   starIndex: /proj/fureylab/genomes/human/hg38_reference/hg38_star_2.7.3a
-  rseqcModel: /proj/fureylab/genomes/human/hg38_reference/houseKeepingGenes/hg38.HouseKeepingGenes.bed
+  rseqcModel: /proj/fureylab/genomes/human/hg38_reference/geneModel/hg38.genes.sorted.bed12
   multiqcConfig: bin/multiqc_config_hg38.yaml
   featureFile: /proj/fureylab/genomes/human/hg38_reference/RNA_annotation/gencode.v34.annotation.gtf.gz
   tx2gene_ensembl: /proj/fureylab/genomes/human/hg38_reference/RNA_annotation/tx2gene.GRCh38.ENSEMBL.csv
@@ -161,10 +161,9 @@ mm10:
   tx2gene_ensembl:
   tx2gene_symbol:
 CC027:
-  salmonIndex: 
-  starIndex: 
-  rseqcModel: /proj/fureylab/genomes/mouse/mm10_reference/houseKeepingGenes/mm10.HouseKeepingGenes.bed
+  salmonIndex: /proj/fureylab/genomes/mouse/CC/salmon_1.1.0/CC027
+  starIndex: /proj/fureylab/genomes/mouse/CC/star_2.7.3a/CC027
+  rseqcModel: /proj/fureylab/genomes/mouse/CC/geneModel/CC027.genes.sorted.bed12
   multiqcConfig: bin/multiqc_config_CC027.yaml
   featureFile: /proj/fureylab/genomes/mouse/CC/RNA_annotation/gencode_vM25/CC027_gencode.vM25.annotation.randomRemoved.mm9.gtf.gz
   tx2gene_ensembl: /proj/fureylab/genomes/mouse/CC/RNA_annotation/gencode_vM25/tx2gene.CC027.ENSEMBL.csv
-  tx2gene_symbol: /proj/fureylab/genomes/mouse/CC/RNA_annotation/gencode_vM25/tx2gene.CC027.HGNC.csv

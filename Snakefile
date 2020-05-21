@@ -1,5 +1,5 @@
 # Ben Keith
-# Last updated 2020.05.15
+# Last updated 2020.05.20
 # Furey Lab Pipeline 2020
 # Snakemake 1.0
 
@@ -47,7 +47,7 @@ else:
         samp = str(path.rsplit('/', 1)[1])
 
         if config["moveOutFiles"]:
-            os.makedirs(str(path) + "/snakemakeRNA", exist_ok=True)
+            os.makedirs(str(path) + "/snakemakeRNA_" + str(genomeBuild), exist_ok=True)
             print("Moving final files...")
             cmd = "cp -rf results/" + str(samp) + "/* " + str(path) + "/snakemakeRNA"
             os.system(cmd)
@@ -521,11 +521,11 @@ rule QM_bamqc:
     params:
         outDir = "results/{sample}/QC/qualimap/{sample}.bamqc",
         outCoverage = "results/{sample}/QC/qualimap/{sample}.bamqc/{sample}.genomeCoverage.txt",
-        seqProtocol = "strand-specific-reverse",
+        seqProtocol = config["qualimap"]["seqProtocol"],
         featureFile = "temp/*gtf",
         genomeGC = organism,
-        javaMemSize = "4G",
-        otherFlags = "--collect-overlap-pairs"
+        javaMemSize = config["qualimap"]["javaMemSize"],
+        otherFlags = config["qualimap"]["bamqcFlags"]
     log:
         "results/{sample}/logs/QM_bamqc.log"
     shell:
@@ -549,10 +549,10 @@ rule QM_rnaseq:
     params:
         outDir = "results/{sample}/QC/qualimap/{sample}.rnaseq",
         outCounts = "results/{sample}/QC/qualimap/{sample}.rnaseq/{sample}.computedCounts.txt",
-        seqProtocol = "strand-specific-reverse",
+        seqProtocol = config["qualimap"]["seqProtocol"],
         featureFile = "temp/*gtf",
-        javaMemSize = "4G",
-        otherFlags = "--paired --sorted"
+        javaMemSize = config["qualimap"]["javaMemSize"],
+        otherFlags = config["qualimap"]["rnaseqFlags"]
     log:
         "results/{sample}/logs/QM_rnaseq.log"
     shell:

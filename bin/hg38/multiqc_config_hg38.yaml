@@ -17,4 +17,4 @@ fn_ignore_files:
 plots_force_interactive: TRUE
 
 fastqc_config:
-    fastqc_theoretical_gc: 'bin/fastqc_theoretical_gc_hg19_txome.txt'
+    fastqc_theoretical_gc: 'bin/hg38/fastqc_theoretical_gc_hg38_txome.txt'

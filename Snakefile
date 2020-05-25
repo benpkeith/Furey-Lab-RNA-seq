@@ -1,5 +1,5 @@
 # Ben Keith
-# Last updated 2020.05.20
+# Last updated 2020.05.25
 # Furey Lab Pipeline 2020
 # Snakemake 1.0
 
@@ -49,7 +49,8 @@ else:
         if config["moveOutFiles"]:
             os.makedirs(str(path) + "/snakemakeRNA_" + str(genomeBuild), exist_ok=True)
             print("Moving final files...")
-            cmd = "cp -rf results/" + str(samp) + "/* " + str(path) + "/snakemakeRNA"
+            cmd = "cp -rf results/" + str(samp) + "/* " + str(path) + \
+              "/snakemakeRNA_" + str(genomeBuild)
             os.system(cmd)
             print("moved sample " + str(samp))
             print("Files moved! Exiting...")
@@ -104,23 +105,40 @@ rule alignmentQuantification:
         touch("temp/starSalmon_run.flag")
 
 # QC complete flag
-rule QC:
-    input:
-        expand("results/{sample}/QC/qualimap/{sample}.rnaseq/qualimapReport.html",
-            sample=samples),
-        expand("results/{sample}/QC/qualimap/{sample}.bamqc/qualimapReport.html",
-            sample=samples),
-        expand("results/{sample}/QC/rseqc/{sample}.Aligned.sortedByCoord.out.summary.txt",
-            sample=samples),
-        expand("results/{sample}/QC/rseqc/{sample}.junctionSaturation_plot.pdf",
-            sample=samples),
-        expand("results/{sample}/{sample}.salmon/quant.sf",
-            sample=samples),
-        expand("results/{sample}/QC/fastQscreen/{sample}_{pair}_screen.txt",
-            sample=samples, pair=["1","2"]),
-        "results/multiqc_raw/" +config["analysis"]["name"] +"_multiqc_raw.html"
-    output:
-        touch("temp/QC_complete.flag")
+if config["junctionSaturation"]:
+    rule QC:
+        input:
+            expand("results/{sample}/QC/qualimap/{sample}.rnaseq/qualimapReport.html",
+                sample=samples),
+            expand("results/{sample}/QC/qualimap/{sample}.bamqc/qualimapReport.html",
+                sample=samples),
+            expand("results/{sample}/QC/rseqc/{sample}.Aligned.sortedByCoord.out.summary.txt",
+                sample=samples),
+            expand("results/{sample}/QC/rseqc/{sample}.junctionSaturation_plot.pdf",
+                sample=samples),
+            expand("results/{sample}/{sample}.salmon/quant.sf",
+                sample=samples),
+            expand("results/{sample}/QC/fastQscreen/{sample}_{pair}_screen.txt",
+                sample=samples, pair=["1","2"]),
+            "results/multiqc_raw/" +config["analysis"]["name"] +"_multiqc_raw.html"
+        output:
+            touch("temp/QC_complete.flag")
+else:
+    rule QC:
+        input:
+            expand("results/{sample}/QC/qualimap/{sample}.rnaseq/qualimapReport.html",
+                sample=samples),
+            expand("results/{sample}/QC/qualimap/{sample}.bamqc/qualimapReport.html",
+                sample=samples),
+            expand("results/{sample}/QC/rseqc/{sample}.Aligned.sortedByCoord.out.summary.txt",
+                sample=samples),
+            expand("results/{sample}/{sample}.salmon/quant.sf",
+                sample=samples),
+            expand("results/{sample}/QC/fastQscreen/{sample}_{pair}_screen.txt",
+                sample=samples, pair=["1","2"]),
+            "results/multiqc_raw/" +config["analysis"]["name"] +"_multiqc_raw.html"
+        output:
+            touch("temp/QC_complete.flag")
 
 #################################################
 ####### useSRA: Fetch and split SRA files #######
@@ -490,26 +508,43 @@ rule fastQscreen:
         """
 
 # Running junction_saturation and tin score portions of rseqc.
-rule rseqc:
+rule rseqc_tin:
     input:
         "temp/{sample}.Aligned.sortedByCoord.out.bam"
     output:
-        "results/{sample}/QC/rseqc/{sample}.Aligned.sortedByCoord.out.summary.txt",
-        "results/{sample}/QC/rseqc/{sample}.junctionSaturation_plot.pdf"
+        "results/{sample}/QC/rseqc/{sample}.Aligned.sortedByCoord.out.summary.txt"
     params:
         model = config[genomeBuild]["rseqcModel"]
     log:
-        "results/{sample}/logs/rseqc.log"
+        "results/{sample}/logs/rseqc_tin.log"
     shell:
         """
         module load r/3.6.0
         module load rseqc/3.0.1
         mkdir -p results/{wildcards.sample}/QC/rseqc
         tin.py -i {input} -r {params.model} > {log}
-        junction_saturation.py -i {input} -r {params.model} \
-          -o {wildcards.sample} >> {log}
         mv {wildcards.sample}* results/{wildcards.sample}/QC/rseqc
         """
+
+if config["junctionSaturation"]:
+    rule rseqc_junctionSaturation:
+        input:
+            "temp/{sample}.Aligned.sortedByCoord.out.bam"
+        output:
+            "results/{sample}/QC/rseqc/{sample}.junctionSaturation_plot.pdf"
+        params:
+            model = config[genomeBuild]["rseqcModel"]
+        log:
+            "results/{sample}/logs/rseqc_junctionSaturation.log"
+        shell:
+            """
+            module load r/3.6.0
+            module load rseqc/3.0.1
+            mkdir -p results/{wildcards.sample}/QC/rseqc
+            junction_saturation.py -i {input} -r {params.model} \
+              -o {wildcards.sample} > {log}
+            mv {wildcards.sample}* results/{wildcards.sample}/QC/rseqc
+            """
 
 # Running the bamqc portion of qualimap
 rule QM_bamqc:

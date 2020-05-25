@@ -49,6 +49,11 @@ moveOutFiles: FALSE
 # had run correctly, and then rerun the pipeline using the same submission
 # statement.
 
+junctionSaturation: TRUE
+# Run the RSeQC junction saturation module. Although this is useful QC
+# information that will be added to the multiqc output, this can take
+# a couple of hours to run, switch this to false if you're in a rush!
+
 quantification: salmon
 # supports "salmon" and "rsem".
 
@@ -132,7 +137,7 @@ hg19:
   salmonIndex: /proj/fureylab/genomes/human/hg19_reference/hg19_salmon_1.1.0
   starIndex: /proj/fureylab/genomes/human/hg19_reference/hg19_star_2.7.3a
   rseqcModel: /proj/fureylab/genomes/human/hg19_reference/geneModel/hg19.genes.sorted.bed12
-  multiqcConfig: bin/multiqc_config_hg19.yaml
+  multiqcConfig: bin/hg19/multiqc_config_hg19.yaml
   featureFile: /proj/fureylab/genomes/human/hg19_reference/RNA_annotation/gencode.v34lift37.annotation.gtf.gz
   tx2gene_ensembl: /proj/fureylab/genomes/human/hg19_reference/RNA_annotation/tx2gene.GRCh37.ENSEMBL.csv
   tx2gene_symbol: /proj/fureylab/genomes/human/hg19_reference/RNA_annotation/tx2gene.GRCh37.HGNC.csv
@@ -140,7 +145,7 @@ hg38:
   salmonIndex: /proj/fureylab/genomes/human/hg38_reference/hg38_salmon_1.1.0
   starIndex: /proj/fureylab/genomes/human/hg38_reference/hg38_star_2.7.3a
   rseqcModel: /proj/fureylab/genomes/human/hg38_reference/geneModel/hg38.genes.sorted.bed12
-  multiqcConfig: bin/multiqc_config_hg38.yaml
+  multiqcConfig: bin/hg38/multiqc_config_hg38.yaml
   featureFile: /proj/fureylab/genomes/human/hg38_reference/RNA_annotation/gencode.v34.annotation.gtf.gz
   tx2gene_ensembl: /proj/fureylab/genomes/human/hg38_reference/RNA_annotation/tx2gene.GRCh38.ENSEMBL.csv
   tx2gene_symbol: /proj/fureylab/genomes/human/hg38_reference/RNA_annotation/tx2gene.GRCh38.HGNC.csv
@@ -164,6 +169,6 @@ CC027:
   salmonIndex: /proj/fureylab/genomes/mouse/CC/salmon_1.1.0/CC027
   starIndex: /proj/fureylab/genomes/mouse/CC/star_2.7.3a/CC027
   rseqcModel: /proj/fureylab/genomes/mouse/CC/geneModel/CC027.genes.sorted.bed12
-  multiqcConfig: bin/multiqc_config_CC027.yaml
+  multiqcConfig: bin/CC027/multiqc_config_CC027.yaml
   featureFile: /proj/fureylab/genomes/mouse/CC/RNA_annotation/gencode_vM25/CC027_gencode.vM25.annotation.randomRemoved.mm9.gtf.gz
   tx2gene_ensembl: /proj/fureylab/genomes/mouse/CC/RNA_annotation/gencode_vM25/tx2gene.CC027.ENSEMBL.csv

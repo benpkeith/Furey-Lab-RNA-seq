@@ -49,7 +49,7 @@ moveOutFiles: FALSE
 # had run correctly, and then rerun the pipeline using the same submission
 # statement.
 
-junctionSaturation: TRUE
+runRSeQC: TRUE
 # Run the RSeQC junction saturation module. Although this is useful QC
 # information that will be added to the multiqc output, this can take
 # a couple of hours to run, switch this to false if you're in a rush!

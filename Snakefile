@@ -104,41 +104,37 @@ rule alignmentQuantification:
     output:
         touch("temp/starSalmon_run.flag")
 
-# QC complete flag
-if config["junctionSaturation"]:
-    rule QC:
+# Handle optional RSeQC commands
+if config["runRSeQC"]:
+    rule RSeQC:
         input:
-            expand("results/{sample}/QC/qualimap/{sample}.rnaseq/qualimapReport.html",
-                sample=samples),
-            expand("results/{sample}/QC/qualimap/{sample}.bamqc/qualimapReport.html",
-                sample=samples),
             expand("results/{sample}/QC/rseqc/{sample}.Aligned.sortedByCoord.out.summary.txt",
                 sample=samples),
             expand("results/{sample}/QC/rseqc/{sample}.junctionSaturation_plot.pdf",
-                sample=samples),
-            expand("results/{sample}/{sample}.salmon/quant.sf",
-                sample=samples),
-            expand("results/{sample}/QC/fastQscreen/{sample}_{pair}_screen.txt",
-                sample=samples, pair=["1","2"]),
-            "results/multiqc_raw/" +config["analysis"]["name"] +"_multiqc_raw.html"
+                sample=samples)
         output:
-            touch("temp/QC_complete.flag")
+            touch("temp/RSeQC.flag")
 else:
-    rule QC:
-        input:
-            expand("results/{sample}/QC/qualimap/{sample}.rnaseq/qualimapReport.html",
-                sample=samples),
-            expand("results/{sample}/QC/qualimap/{sample}.bamqc/qualimapReport.html",
-                sample=samples),
-            expand("results/{sample}/QC/rseqc/{sample}.Aligned.sortedByCoord.out.summary.txt",
-                sample=samples),
-            expand("results/{sample}/{sample}.salmon/quant.sf",
-                sample=samples),
-            expand("results/{sample}/QC/fastQscreen/{sample}_{pair}_screen.txt",
-                sample=samples, pair=["1","2"]),
-            "results/multiqc_raw/" +config["analysis"]["name"] +"_multiqc_raw.html"
-        output:
-            touch("temp/QC_complete.flag")
+    os.system("touch temp/RSeQC.flag")
+
+rule QC:
+    input:
+        "temp/RSeQC.flag",
+        expand("results/{sample}/QC/qualimap/{sample}.rnaseq/qualimapReport.html",
+            sample=samples),
+        expand("results/{sample}/QC/qualimap/{sample}.bamqc/qualimapReport.html",
+            sample=samples),
+        expand("results/{sample}/QC/rseqc/{sample}.Aligned.sortedByCoord.out.summary.txt",
+            sample=samples),
+        expand("results/{sample}/QC/rseqc/{sample}.junctionSaturation_plot.pdf",
+            sample=samples),
+        expand("results/{sample}/{sample}.salmon/quant.sf",
+            sample=samples),
+        expand("results/{sample}/QC/fastQscreen/{sample}_{pair}_screen.txt",
+            sample=samples, pair=["1","2"]),
+        "results/multiqc_raw/" +config["analysis"]["name"] +"_multiqc_raw.html"
+    output:
+        touch("temp/QC_complete.flag")
 
 #################################################
 ####### useSRA: Fetch and split SRA files #######
@@ -507,26 +503,27 @@ rule fastQscreen:
           --outdir {params.outDir} --subset {params.subset} {input} > {log}
         """
 
-# Running junction_saturation and tin score portions of rseqc.
-rule rseqc_tin:
-    input:
-        "temp/{sample}.Aligned.sortedByCoord.out.bam"
-    output:
-        "results/{sample}/QC/rseqc/{sample}.Aligned.sortedByCoord.out.summary.txt"
-    params:
-        model = config[genomeBuild]["rseqcModel"]
-    log:
-        "results/{sample}/logs/rseqc_tin.log"
-    shell:
-        """
-        module load r/3.6.0
-        module load rseqc/3.0.1
-        mkdir -p results/{wildcards.sample}/QC/rseqc
-        tin.py -i {input} -r {params.model} > {log}
-        mv {wildcards.sample}* results/{wildcards.sample}/QC/rseqc
-        """
+if config["runRSeQC"]:
+    # Running tin score portions of RSeQC.
+    rule rseqc_tin:
+        input:
+            "temp/{sample}.Aligned.sortedByCoord.out.bam"
+        output:
+            "results/{sample}/QC/rseqc/{sample}.Aligned.sortedByCoord.out.summary.txt"
+        params:
+            model = config[genomeBuild]["rseqcModel"]
+        log:
+            "results/{sample}/logs/rseqc_tin.log"
+        shell:
+            """
+            module load r/3.6.0
+            module load rseqc/3.0.1
+            mkdir -p results/{wildcards.sample}/QC/rseqc
+            tin.py -i {input} -r {params.model} > {log}
+            mv {wildcards.sample}* results/{wildcards.sample}/QC/rseqc
+            """
 
-if config["junctionSaturation"]:
+    # Running junction saturation portion of RSeQC
     rule rseqc_junctionSaturation:
         input:
             "temp/{sample}.Aligned.sortedByCoord.out.bam"

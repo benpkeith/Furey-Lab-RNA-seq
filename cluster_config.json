@@ -100,8 +100,8 @@
     },
     "rseqc_junctionSaturation":
     {
-        "mem": "25G",
-        "time": "5:00:0",
+        "mem": "50G",
+        "time": "8:00:0",
         "ntasks": "1",
         "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
         "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",
@@ -110,7 +110,7 @@
     "rseqc_tin":
     {
         "mem": "25G",
-        "time": "5:00:0",
+        "time": "8:00:0",
         "ntasks": "1",
         "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
         "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",

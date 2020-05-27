@@ -517,7 +517,7 @@ if config["runRSeQC"]:
             module load rseqc/3.0.1
             mkdir -p results/{wildcards.sample}/QC/rseqc
             tin.py -i {input} -r {params.model} > {log}
-            mv {wildcards.sample}* results/{wildcards.sample}/QC/rseqc
+            mv {wildcards.sample}.Aligned.sortedByCoord* results/{wildcards.sample}/QC/rseqc
             """
 
     # Running junction saturation portion of RSeQC
@@ -538,7 +538,7 @@ if config["runRSeQC"]:
             mkdir -p results/{wildcards.sample}/QC/rseqc
             junction_saturation.py -i {input} -r {params.model} \
               -o {wildcards.sample} > {log}
-            mv {wildcards.sample}* results/{wildcards.sample}/QC/rseqc
+            mv {wildcards.sample}.junction* results/{wildcards.sample}/QC/rseqc
             """
 
 # Running the bamqc portion of qualimap

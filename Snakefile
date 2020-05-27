@@ -306,8 +306,8 @@ if config["quantification"] == "salmon":
 
             cp results/{wildcards.sample}/star/{wildcards.sample}.Aligned.sortedByCoord.out.bam \
               temp
-            samtools index \
-              temp/{wildcards.sample}.Aligned.sortedByCoord.out.bam
+            cp results/{wildcards.sample}/star/{wildcards.sample}.Aligned.sortedByCoord.out.bam.bai \
+              temp
 
             mv {params.outFileNamePrefix}Log.final.out \
               results/{wildcards.sample}/logs/star/
@@ -512,6 +512,7 @@ if config["runRSeQC"]:
             "results/{sample}/logs/rseqc_tin.log"
         shell:
             """
+            touch temp/{wildcards.sample}.Aligned.sortedByCoord.out.bam.bai
             module load r/3.6.0
             module load rseqc/3.0.1
             mkdir -p results/{wildcards.sample}/QC/rseqc
@@ -531,6 +532,7 @@ if config["runRSeQC"]:
             "results/{sample}/logs/rseqc_junctionSaturation.log"
         shell:
             """
+            touch temp/{wildcards.sample}.Aligned.sortedByCoord.out.bam.bai
             module load r/3.6.0
             module load rseqc/3.0.1
             mkdir -p results/{wildcards.sample}/QC/rseqc

@@ -136,7 +136,7 @@ qualimap:
 hg19:
   salmonIndex: /proj/fureylab/genomes/human/hg19_reference/hg19_salmon_1.1.0
   starIndex: /proj/fureylab/genomes/human/hg19_reference/hg19_star_2.7.3a
-  rseqcModel: /proj/fureylab/genomes/human/hg19_reference/geneModel/hg19.genes.sorted.bed12
+  rseqcModel: /proj/fureylab/genomes/human/hg19_reference/geneModel/hg19.houseKeepingGenes.bed12
   multiqcConfig: bin/hg19/multiqc_config_hg19.yaml
   featureFile: /proj/fureylab/genomes/human/hg19_reference/RNA_annotation/gencode.v34lift37.annotation.gtf.gz
   tx2gene_ensembl: /proj/fureylab/genomes/human/hg19_reference/RNA_annotation/tx2gene.GRCh37.ENSEMBL.csv
@@ -144,7 +144,7 @@ hg19:
 hg38:
   salmonIndex: /proj/fureylab/genomes/human/hg38_reference/hg38_salmon_1.1.0
   starIndex: /proj/fureylab/genomes/human/hg38_reference/hg38_star_2.7.3a
-  rseqcModel: /proj/fureylab/genomes/human/hg38_reference/geneModel/hg38.genes.sorted.bed12
+  rseqcModel: /proj/fureylab/genomes/human/hg38_reference/geneModel/hg38.houseKeepingGenes.bed12
   multiqcConfig: bin/hg38/multiqc_config_hg38.yaml
   featureFile: /proj/fureylab/genomes/human/hg38_reference/RNA_annotation/gencode.v34.annotation.gtf.gz
   tx2gene_ensembl: /proj/fureylab/genomes/human/hg38_reference/RNA_annotation/tx2gene.GRCh38.ENSEMBL.csv
@@ -168,7 +168,7 @@ mm10:
 CC027:
   salmonIndex: /proj/fureylab/genomes/mouse/CC/salmon_1.1.0/CC027
   starIndex: /proj/fureylab/genomes/mouse/CC/star_2.7.3a/CC027
-  rseqcModel: /proj/fureylab/genomes/mouse/CC/geneModel/CC027.genes.sorted.bed12
+  rseqcModel: /proj/fureylab/genomes/mouse/CC/geneModel/CC027.houseKeepingGenes.bed12
   multiqcConfig: bin/CC027/multiqc_config_CC027.yaml
   featureFile: /proj/fureylab/genomes/mouse/CC/RNA_annotation/gencode_vM25/CC027_gencode.vM25.annotation.randomRemoved.mm9.gtf.gz
   tx2gene_ensembl: /proj/fureylab/genomes/mouse/CC/RNA_annotation/gencode_vM25/tx2gene.CC027.ENSEMBL.csv

@@ -1,0 +1,20 @@
+fn_clean_exts:
+    - '.gz'
+    - '_fastq'
+    - '.Aligned'
+    - '.Log'
+    - '.bamqc'
+    - '.salmon'
+    - '_1.fastq'
+    - '_2.fastq'
+
+fn_ignore_files:
+    - '*2_screen.txt'
+    - '*2_fastqc.zip'
+    - '*2_fastqc.html'
+    - '*2_fastqc_data.txt'
+
+plots_force_interactive: TRUE
+
+fastqc_config:
+    fastqc_theoretical_gc: 'bin/mm9/fastqc_theoretical_gc_mm9_txome.txt'

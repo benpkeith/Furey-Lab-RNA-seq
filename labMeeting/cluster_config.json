@@ -1,0 +1,119 @@
+{
+    "__default__":
+    {
+        "mem": "10G",
+        "time": "5:0:0",
+        "ntasks": "1",
+        "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
+        "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",
+        "jobname": "{rule}"
+    },
+    "cutadapt":
+    {
+        "mem": "25G",
+        "time": "5:0:0",
+        "ntasks": "1",
+        "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
+        "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",
+        "jobname": "{rule}"
+    },
+    "rsem":
+    {
+        "mem": "100G",
+        "time": "10:0:0",
+        "ntasks": "1",
+        "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
+        "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",
+        "jobname": "{rule}"
+    },
+    "star":
+    {
+        "mem": "50G",
+        "time": "5:0:0",
+        "ntasks": "1",
+        "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
+        "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",
+        "jobname": "{rule}"
+    },
+    "salmon":
+    {
+        "mem": "25G",
+        "time": "5:0:0",
+        "ntasks": "1",
+        "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
+        "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",
+        "jobname": "{rule}"
+    },
+    "multiqc":
+    {
+        "mem": "10G",
+        "time": "5:0:0",
+        "ntasks": "1",
+        "output": "results/multiqc/{rule}_SLURM.out",
+        "err": "results/multiqc/{rule}_SLURM.err",
+        "jobname": "{rule}"
+    },
+    "multiqc_raw":
+    {
+        "mem": "10G",
+        "time": "5:0:0",
+        "ntasks": "1",
+        "output": "results/multiqc/{rule}_SLURM.out",
+        "err": "results/multiqc/{rule}_SLURM.err",
+        "jobname": "{rule}"
+    },
+    "fastqc":
+    {
+        "mem": "10G",
+        "time": "5:0:0",
+        "ntasks": "1",
+        "output": "results/{wildcards.sample}/logs/{rule}_{wildcards.pair}_SLURM.out",
+        "err": "results/{wildcards.sample}/logs/{rule}_{wildcards.pair}_SLURM.err",
+        "jobname": "{rule}"
+    },
+    "fastQscreen":
+    {
+        "mem": "10G",
+        "time": "5:0:0",
+        "ntasks": "1",
+        "output": "results/{wildcards.sample}/logs/{rule}_{wildcards.pair}_SLURM.out",
+        "err": "results/{wildcards.sample}/logs/{rule}_{wildcards.pair}_SLURM.err",
+        "jobname": "{rule}"
+    },
+    "matrixGeneration":
+    {
+        "mem": "10G",
+        "time": "5:0:0",
+        "ntasks": "1",
+        "output": "results/counts/{rule}_SLURM.out",
+        "err": "results/counts/{rule}_SLURM.err",
+        "jobname": "{rule}"
+    },
+    "bamCoverage":
+    {
+        "mem": "50G",
+        "time": "5:0:0",
+        "ntasks": "1",
+        "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
+        "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",
+        "jobname": "{rule}"
+    },
+    "rseqc_junctionSaturation":
+    {
+        "mem": "50G",
+        "time": "8:00:0",
+        "ntasks": "1",
+        "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
+        "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",
+        "jobname": "{rule}"
+    },
+    "rseqc_tin":
+    {
+        "mem": "25G",
+        "time": "8:00:0",
+        "ntasks": "1",
+        "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
+        "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",
+        "jobname": "{rule}"
+    }
+}

@@ -91,7 +91,7 @@
     },
     "bamCoverage":
     {
-        "mem": "50G",
+        "mem": "100G",
         "time": "5:0:0",
         "ntasks": "1",
         "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
@@ -100,7 +100,7 @@
     },
     "rseqc_junctionSaturation":
     {
-        "mem": "50G",
+        "mem": "25G",
         "time": "8:00:0",
         "ntasks": "1",
         "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",

@@ -136,12 +136,29 @@ sbatch -o snakePipe.log -e snakePipe.err -t 1-0 -J snakePipe --wrap='snakemake -
 -t {cluster.time} -n {cluster.ntasks} -o {cluster.output} -e {cluster.err} \
 -J {cluster.jobname}"'
 ```
+4. To check which jobs are running or queued, use the command:
+
+```
+squeue -u onyen
+```
+
+5. Throughout the running of the pipeline, the _snakePipe.err_ file will contain information about jobs that have completed, or whether jobs have run into errors. If the pipeline has finished completely without errors, the end of the _snakePipe.err_ file will state "X of X steps (100%) done"
+
+6. If you wish to move output files for each sample to permanent space, once the pipeline has change the _moveOutFile_ flag within  the project configuration file to _TRUE_ and run the below command in the same directory as the Snakefile. This will move the results directories for each sample to a directory named "snakemakeRNA_[build]" within the directory specified in the project configuration file.
+
+```
+snakemake --printshellcmds --jobs=100 \
+--cluster-config cluster_config.json --cluster "sbatch --mem={cluster.mem} \
+-t {cluster.time} -n {cluster.ntasks} -o {cluster.output} -e {cluster.err} \
+-J {cluster.jobname}"
+```
 
 **NOTES**
 
 - The _moveOutFile_ flag within the project configuration file **should be set to FALSE for the first run through the pipeline**. Once the pipeline has finished, and output files are generated, this flag can be switched to TRUE within the project configuration file and the exact same submission command can be used. This will copy the output directories for each sample to permanent space.
 - The _cluster_config.yaml_ file is currently set up to not utilise threading. Although I found a massive increase in speed during testing when threading, the current queue times for the hov partitions on longleaf are really long. Therefore _ntasks_ is set to 1 for each sample.
 - If you get the error like the one below in any of your log files, this is because a job ran out of memory. You will need to edit the memory requirement for this job in the cluster_config.yaml file. Similar errors can also be produced if a job goes over the supplied time limit (which I've set to 5 hours for each job. I'd be suprised if any job runs longer than 5 hours based on current parameters).
+- The "name" section of the project_config.yaml **file cannot contain spaces**. This will project errors when it comes to the QC steps of the pipeline.
 
 ```
 slurmstepd: error: Detected 3 oom-kill event(s) in step 59882717.batch cgroup. Some of your processes may have been killed by the cgroup out-of-memory handler.

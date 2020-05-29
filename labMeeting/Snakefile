@@ -10,6 +10,7 @@
 import os
 import glob
 import re
+import sys
 import os.path
 from os import path
 shell.prefix("module load python/2.7.12; ")
@@ -64,6 +65,9 @@ else:
                 cmd = "ln -s " + str(file) + " results/" + \
                   samp + "/fastq/" + samp + "_2.fastq.gz" +  " >/dev/null 2>&1"
                 os.system(cmd)
+
+if config["moveOutFiles"]:
+    sys.exit()
 
 #setting up for the feature file for QC
 if not glob.glob('temp/*gtf'):
@@ -416,24 +420,24 @@ rule matrixGeneration:
 
 # Deeptools bamCoverage is used to create a bigWig file for RNA-seq
 # visualisation on the genome browser.
-rule bamCoverage:
-    input:
-        "temp/{sample}.Aligned.sortedByCoord.out.bam"
-    output:
-        "results/{sample}/star/{sample}.RPKM.bw"
-    params:
-        binSize = config["bamCoverage"]["binSize"],
-        normalizeUsing = config["bamCoverage"]["normalizeUsing"],
-        ignoreForNormalization = config["bamCoverage"]["ignoreForNormalization"]
-    log:
-        "results/{sample}/logs/bamCoverage.log"
-    shell:
-        """
-        module load deeptools/3.2.0
-        bamCoverage --ignoreForNormalization {params.ignoreForNormalization} \
-          -o {output} --binSize {params.binSize} \
-          --normalizeUsing {params.normalizeUsing} --bam {input} > {log}
-        """
+# rule bamCoverage:
+#     input:
+#         "temp/{sample}.Aligned.sortedByCoord.out.bam"
+#     output:
+#         "results/{sample}/star/{sample}.RPKM.bw"
+#     params:
+#         binSize = config["bamCoverage"]["binSize"],
+#         normalizeUsing = config["bamCoverage"]["normalizeUsing"],
+#         ignoreForNormalization = config["bamCoverage"]["ignoreForNormalization"]
+#     log:
+#         "results/{sample}/logs/bamCoverage.log"
+#     shell:
+#         """
+#         module load deeptools/3.2.0
+#         bamCoverage --ignoreForNormalization {params.ignoreForNormalization} \
+#           -o {output} --binSize {params.binSize} \
+#           --normalizeUsing {params.normalizeUsing} --bam {input} > {log}
+#         """
 
 #########################
 #### Quality control ####
@@ -612,7 +616,7 @@ rule multiqc:
     shell:
         """
         module load multiqc/1.7
-        multiqc -n {output.html} -c {params.configFile} . > {log}
+        multiqc -n {output.html} -c {params.configFile} results/ > {log}
         """
 
 #############################
@@ -626,8 +630,7 @@ rule name_clean:
         "results/multiqc/" + config["analysis"]["name"] + "_multiqc.html",
         "results/{sample}/{sample}.salmon/{sample}.aligned.sorted.bam.bai",
         "results/{sample}/QC/qualimap/{sample}.rnaseq/qualimapReport.html",
-        "results/{sample}/QC/qualimap/{sample}.bamqc/qualimapReport.html",
-        "results/{sample}/star/{sample}.RPKM.bw"
+        "results/{sample}/QC/qualimap/{sample}.bamqc/qualimapReport.html"
     output:
         directory("results/{sample}/salmon"),
         directory("results/{sample}/QC/qualimap/rnaseq"),

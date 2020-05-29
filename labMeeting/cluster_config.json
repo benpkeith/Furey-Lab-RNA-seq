@@ -10,7 +10,7 @@
     },
     "cutadapt":
     {
-        "mem": "25G",
+        "mem": "10G",
         "time": "5:0:0",
         "ntasks": "1",
         "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
@@ -28,7 +28,7 @@
     },
     "star":
     {
-        "mem": "50G",
+        "mem": "35G",
         "time": "5:0:0",
         "ntasks": "1",
         "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
@@ -37,7 +37,7 @@
     },
     "salmon":
     {
-        "mem": "25G",
+        "mem": "10G",
         "time": "5:0:0",
         "ntasks": "1",
         "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
@@ -91,7 +91,7 @@
     },
     "bamCoverage":
     {
-        "mem": "50G",
+        "mem": "10G",
         "time": "5:0:0",
         "ntasks": "1",
         "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
@@ -100,7 +100,7 @@
     },
     "rseqc_junctionSaturation":
     {
-        "mem": "50G",
+        "mem": "10G",
         "time": "8:00:0",
         "ntasks": "1",
         "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
@@ -109,7 +109,7 @@
     },
     "rseqc_tin":
     {
-        "mem": "25G",
+        "mem": "10G",
         "time": "8:00:0",
         "ntasks": "1",
         "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",

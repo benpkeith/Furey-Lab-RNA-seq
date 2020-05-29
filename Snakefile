@@ -10,6 +10,7 @@
 import os
 import glob
 import re
+import sys
 import os.path
 from os import path
 shell.prefix("module load python/2.7.12; ")
@@ -52,9 +53,7 @@ else:
             cmd = "cp -rf results/" + str(samp) + "/* " + str(path) + \
               "/snakemakeRNA_" + str(genomeBuild)
             os.system(cmd)
-            print("moved sample " + str(samp))
-            print("Files moved! Exiting...")
-            sys.exit()
+            print("moved sample outputs for " + str(samp) + " to " + str(path))
 
         for file in glob.glob(str(path + "/fastq/*gz")):
             if "_R1_" in file or re.search("_1\.f*q\.gz$", file):
@@ -65,6 +64,11 @@ else:
                 cmd = "ln -s " + str(file) + " results/" + \
                   samp + "/fastq/" + samp + "_2.fastq.gz" +  " >/dev/null 2>&1"
                 os.system(cmd)
+
+if config["moveOutFiles"]:
+    print("Files moved! Exiting...")
+    print("The SystemExit message below this is normal!")
+    sys.exit()
 
 #setting up for the feature file for QC
 if not glob.glob('temp/*gtf'):

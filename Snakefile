@@ -54,6 +54,7 @@ else:
             os.system(cmd)
             print("moved sample " + str(samp))
             print("Files moved! Exiting...")
+            sys.exit()
 
         for file in glob.glob(str(path + "/fastq/*gz")):
             if "_R1_" in file or re.search("_1\.f*q\.gz$", file):

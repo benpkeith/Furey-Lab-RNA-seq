@@ -162,15 +162,15 @@ if config["useSRA"]:
                 module load sratoolkit/2.10.1
                 fastq-dump {params.other_flags} -L 5 -O {params.fastq_dir} {input} \
                   > {log}
-                gzip fastq/{wildcards.sample}_1.fastq
-                gzip fastq/{wildcards.sample}_2.fastq
+                gzip {params.fastq_dir}/{wildcards.sample}_1.fastq
+                gzip {params.fastq_dir}/{wildcards.sample}_2.fastq
                 """)
             if config["end"] == "single":
                 shell("""
                 module load sratoolkit/2.10.1
                 fastq-dump {params.other_flags} -L 5 -O {params.fastq_dir} {input} \
                   > {log}
-                gzip fastq/{wildcards.sample}_1.fastq
+                gzip {params.fastq_dir}/{wildcards.sample}_1.fastq
                 """)
 
 ##################################

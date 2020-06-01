@@ -109,31 +109,21 @@ rule alignmentQuantification:
     output:
         touch("temp/starSalmon_run.flag")
 
-# Handle optional RSeQC commands
-if config["runRSeQC"]:
-    rule RSeQC:
-        input:
-            expand("results/{sample}/QC/rseqc/{sample}.Aligned.sortedByCoord.out.summary.txt",
-                sample=samples),
-            expand("results/{sample}/QC/rseqc/{sample}.junctionSaturation_plot.pdf",
-                sample=samples)
-        output:
-            touch("temp/RSeQC.flag")
-else:
-    os.system("touch temp/RSeQC.flag")
-
 rule QC:
     input:
-        "temp/RSeQC.flag",
+        expand("results/{sample}/QC/rseqc/{sample}.Aligned.sortedByCoord.out.summary.txt",
+            sample=samples),
+        expand("results/{sample}/QC/rseqc/{sample}.junctionSaturation_plot.pdf",
+            sample=samples)
         expand("results/{sample}/QC/qualimap/{sample}.rnaseq/qualimapReport.html",
             sample=samples),
         expand("results/{sample}/QC/qualimap/{sample}.bamqc/qualimapReport.html",
             sample=samples),
         expand("results/{sample}/{sample}.salmon/quant.sf",
             sample=samples),
-        expand("results/{sample}/QC/fastQscreen/{sample}_{pair}_screen.txt",
-            sample=samples, pair=["1","2"]),
-        "results/multiqc_raw/" +config["analysis"]["name"] +"_multiqc_raw.html"
+        expand("results/{sample}/QC/fastq_screen/{sample}_1_screen.txt",
+            sample=samples),
+        "results/multiqc_raw/" + config["analysis"]["name"] + "_multiqc_raw.html"
     output:
         touch("temp/QC_complete.flag")
 
@@ -160,26 +150,28 @@ if config["useSRA"]:
         input:
             "temp/{sample}/fastq/{sample}.sra"
         output:
-            "results/{sample}/fastq/{sample}_1.fastq.gz",
-            "results/{sample}/fastq/{sample}_2.fastq.gz"
+            "results/{sample}/fastq/{sample}_1.fastq.gz"
         params:
-            fastq_dir = "fastq/",
+            fastq_dir = "results/{sample}/fastq/",
             other_flags = "--split-files"
         log:
             "results/{sample}/logs/fastq_dump.log"
-        shell:
-            """
-            module load sratoolkit/2.10.1
-            fastq-dump {params.other_flags} -L 5 -O {params.fastq_dir} {input} \
-              > {log}
-            gzip fastq/{wildcards.sample}_1.fastq
-            gzip fastq/{wildcards.sample}_2.fastq
-            mkdir results/{wildcards.sample}/fastq
-            ln -s fastq/{wildcards.sample}_1.fastq.gz \
-              results/{wildcards.sample}/fastq/{wildcards.sample}_1.fastq.gz
-            ln -s fastq/{wildcards.sample}_2.fastq.gz \
-              results/{wildcards.sample}/fastq/{wildcards.sample}_2.fastq.gz
-            """
+        run:
+            if config["end"] == "paired":
+                shell("""
+                module load sratoolkit/2.10.1
+                fastq-dump {params.other_flags} -L 5 -O {params.fastq_dir} {input} \
+                  > {log}
+                gzip fastq/{wildcards.sample}_1.fastq
+                gzip fastq/{wildcards.sample}_2.fastq
+                """)
+            if config["end"] == "single":
+                shell("""
+                module load sratoolkit/2.10.1
+                fastq-dump {params.other_flags} -L 5 -O {params.fastq_dir} {input} \
+                  > {log}
+                gzip fastq/{wildcards.sample}_1.fastq
+                """)
 
 ##################################
 #### Preprocessing - cutadapt ####
@@ -188,30 +180,41 @@ if config["useSRA"]:
 # Remove adaptors.
 rule cutadapt:
     input:
-        fastq1 = "results/{sample}/fastq/{sample}_1.fastq.gz",
-        fastq2 = "results/{sample}/fastq/{sample}_2.fastq.gz"
+        "results/{sample}/fastq/{sample}_1.fastq.gz"
     output:
-        trimmed1 = "temp/{sample}/fastq/{sample}_1.fastq.trimmed.gz",
-        trimmed2 = "temp/{sample}/fastq/{sample}_2.fastq.trimmed.gz"
+        "temp/{sample}/fastq/{sample}_1.fastq.trimmed.gz"
     params:
         a = config["cutadapt"]["a"],
         A = config["cutadapt"]["A"],
         qualityCutoff = config["cutadapt"]["qualityCutoff"],
         minimumLength = config["cutadapt"]["minimumLength"],
-        threads = config["cutadapt"]["threads"]
+        threads = config["cutadapt"]["threads"],
+        basename = "results/{sample}/fastq/{sample}_"
     log:
         "results/{sample}/logs/cutadapt.log"
-    shell:
-        """
-        module load cutadapt/2.9
-        cutadapt -a {params.a} -A {params.A} \
-          --quality-cutoff {params.qualityCutoff} \
-          --cores {params.threads} \
-          --minimum-length {params.minimumLength} \
-          -o {output.trimmed1} -p {output.trimmed2} \
-          {input.fastq1} {input.fastq2} \
-          > {log}
-        """
+    run:
+        if config["end"] == "paired":
+            shell("""
+            module load cutadapt/2.9
+            cutadapt -a {params.a} -A {params.A} \
+              --quality-cutoff {params.qualityCutoff} \
+              --cores {params.threads} \
+              --minimum-length {params.minimumLength} \
+              -o {params.basename}_1.fastq.trimmed.gz -p {params.basename}_2.fastq.trimmed.gz \
+              {params.basename}_1.fastq.gz {params.basename}_2.fastq.gz \
+              > {log}
+            """)
+        if config["end"] == "single":
+            shell("""
+            module load cutadapt/2.9
+            cutadapt -a {params.a} \
+              --quality-cutoff {params.qualityCutoff} \
+              --cores {params.threads} \
+              --minimum-length {params.minimumLength} \
+              -o {params.basename}_1.fastq.trimmed.gz \
+              {params.basename}_1.fastq.gz \
+              > {log}
+            """)
 
 ##################################################
 #### Alignment and quantification - STAR/rsem ####
@@ -276,8 +279,7 @@ if config["quantification"] == "salmon":
     # 5. Moving of star log files to the proper directory.
     rule star:
         input:
-            fastq1 = "temp/{sample}/fastq/{sample}_1.fastq.trimmed.gz",
-            fastq2 = "temp/{sample}/fastq/{sample}_2.fastq.trimmed.gz"
+            "temp/{sample}/fastq/{sample}_1.fastq.trimmed.gz"
         output:
             "temp/{sample}.Aligned.sortedByCoord.out.bam",
             "results/{sample}/star/{sample}.SJ.out.tab"
@@ -290,43 +292,73 @@ if config["quantification"] == "salmon":
             genomeDir = config[genomeBuild]["starIndex"],
             sjdbOverhang = config["star"]["sjdbOverhang"],
             outFileNamePrefix = "results/{sample}/star/{sample}.",
-            featureFile = config[genomeBuild]["featureFile"]
+            featureFile = config[genomeBuild]["featureFile"],
+            basename = "results/{sample}/fastq/{sample}_"
         log:
             "results/{sample}/logs/star/star.log"
-        shell:
-            """
-            mkdir -p results/{wildcards.sample}/star/
-            module load star/2.7.3a
-            star --runThreadN {params.threads} --sjdbOverhang {params.sjdbOverhang} \
-              --genomeDir {params.genomeDir} --readFilesCommand {params.readFilesCommand} \
-              --outSAMtype {params.outSAMtype} --outSAMunmapped Within \
-              --quantMode {params.quantMode} \
-              --outFileNamePrefix {params.outFileNamePrefix} \
-              --readFilesIn {input.fastq1} {input.fastq2} \
-              > {log}
+        run:
+            if config["end"] == "paired":
+                shell("""
+                mkdir -p results/{wildcards.sample}/star/
+                module load star/2.7.3a
+                star --runThreadN {params.threads} --sjdbOverhang {params.sjdbOverhang} \
+                  --genomeDir {params.genomeDir} --readFilesCommand {params.readFilesCommand} \
+                  --outSAMtype {params.outSAMtype} --outSAMunmapped Within \
+                  --quantMode {params.quantMode} \
+                  --outFileNamePrefix {params.outFileNamePrefix} \
+                  --readFilesIn {params.basename}_1.fastq.trimmed.gz \
+                  {params.basename}_2.fastq.trimmed.gz \
+                  > {log}
 
-            module load samtools/1.9
-            samtools index \
-              results/{wildcards.sample}/star/{wildcards.sample}.Aligned.sortedByCoord.out.bam
+                module load samtools/1.9
+                samtools index \
+                  results/{wildcards.sample}/star/{wildcards.sample}.Aligned.sortedByCoord.out.bam
 
-            cp results/{wildcards.sample}/star/{wildcards.sample}.Aligned.sortedByCoord.out.bam \
-              temp
-            cp results/{wildcards.sample}/star/{wildcards.sample}.Aligned.sortedByCoord.out.bam.bai \
-              temp
+                cp results/{wildcards.sample}/star/{wildcards.sample}.Aligned.sortedByCoord.out.bam \
+                  temp
+                cp results/{wildcards.sample}/star/{wildcards.sample}.Aligned.sortedByCoord.out.bam.bai \
+                  temp
 
-            mv {params.outFileNamePrefix}Log.final.out \
-              results/{wildcards.sample}/logs/star/
-            mv {params.outFileNamePrefix}Log.progress.out \
-              results/{wildcards.sample}/logs/star/
-            mv {params.outFileNamePrefix}Log.out \
-              results/{wildcards.sample}/logs/star/
-            """
+                mv {params.outFileNamePrefix}Log.final.out \
+                  results/{wildcards.sample}/logs/star/
+                mv {params.outFileNamePrefix}Log.progress.out \
+                  results/{wildcards.sample}/logs/star/
+                mv {params.outFileNamePrefix}Log.out \
+                  results/{wildcards.sample}/logs/star/
+                """)
+            if config["end"] == "single":
+                shell("""
+                mkdir -p results/{wildcards.sample}/star/
+                module load star/2.7.3a
+                star --runThreadN {params.threads} --sjdbOverhang {params.sjdbOverhang} \
+                  --genomeDir {params.genomeDir} --readFilesCommand {params.readFilesCommand} \
+                  --outSAMtype {params.outSAMtype} --outSAMunmapped Within \
+                  --quantMode {params.quantMode} \
+                  --outFileNamePrefix {params.outFileNamePrefix} \
+                  --readFilesIn {params.basename}_1.fastq.trimmed.gz \
+                  > {log}
+
+                module load samtools/1.9
+                samtools index \
+                  results/{wildcards.sample}/star/{wildcards.sample}.Aligned.sortedByCoord.out.bam
+
+                cp results/{wildcards.sample}/star/{wildcards.sample}.Aligned.sortedByCoord.out.bam \
+                  temp
+                cp results/{wildcards.sample}/star/{wildcards.sample}.Aligned.sortedByCoord.out.bam.bai \
+                  temp
+
+                mv {params.outFileNamePrefix}Log.final.out \
+                  results/{wildcards.sample}/logs/star/
+                mv {params.outFileNamePrefix}Log.progress.out \
+                  results/{wildcards.sample}/logs/star/
+                mv {params.outFileNamePrefix}Log.out \
+                  results/{wildcards.sample}/logs/star/
+                """)
 
     # Salmon quantification
     rule salmon:
         input:
-            fastq1 = "temp/{sample}/fastq/{sample}_1.fastq.trimmed.gz",
-            fastq2 = "temp/{sample}/fastq/{sample}_2.fastq.trimmed.gz"
+            "temp/{sample}/fastq/{sample}_1.fastq.trimmed.gz"
         output:
             "results/{sample}/{sample}.salmon/quant.sf",
             "temp/{sample}/salmon/{sample}.aligned.sam"
@@ -337,24 +369,42 @@ if config["quantification"] == "salmon":
             numBootstraps = config["salmon"]["numBootstraps"],
             otherFlags = config["salmon"]["otherFlags"],
             outDir = "results/{sample}/{sample}.salmon",
-            tmpDir = "temp/{sample}/salmon"
+            tmpDir = "temp/{sample}/salmon",
+            basename = "results/{sample}/fastq/{sample}_"
         log:
             "results/{sample}/logs/salmon.log"
-        shell:
-            """
-            mkdir -p {params.outDir}
-            mkdir -p {params.tmpDir}
-            module load salmon/1.1.0
-            salmon quant --libType {params.libType} {params.otherFlags} \
-              --numBootstraps={params.numBootstraps} --threads {params.threads} \
-              --writeMappings={params.tmpDir}/{wildcards.sample}.aligned.sam \
-              -i {params.index} -o {params.outDir} \
-              -1 {input.fastq1} -2 {input.fastq2} \
-              > {log}
-            mv {params.outDir}/logs/salmon_quant.log \
-              results/{wildcards.sample}/logs
-            rm -r {params.outDir}/logs
-            """
+        run:
+            if config["end"] == "paired":
+                shell("""
+                mkdir -p {params.outDir}
+                mkdir -p {params.tmpDir}
+                module load salmon/1.2.1
+                salmon quant --libType {params.libType} {params.otherFlags} \
+                  --numBootstraps={params.numBootstraps} --threads {params.threads} \
+                  --writeMappings={params.tmpDir}/{wildcards.sample}.aligned.sam \
+                  -i {params.index} -o {params.outDir} \
+                  -1 {params.basename}_1.fastq.trimmed.gz \
+                  -2 {params.basename}_2.fastq.trimmed.gz \
+                  > {log}
+                mv {params.outDir}/logs/salmon_quant.log \
+                  results/{wildcards.sample}/logs
+                rm -r {params.outDir}/logs
+                """)
+            if config["end"] == "single":
+                shell("""
+                mkdir -p {params.outDir}
+                mkdir -p {params.tmpDir}
+                module load salmon/1.2.1
+                salmon quant --libType {params.libType} {params.otherFlags} \
+                  --numBootstraps={params.numBootstraps} --threads {params.threads} \
+                  --writeMappings={params.tmpDir}/{wildcards.sample}.aligned.sam \
+                  -i {params.index} -o {params.outDir} \
+                  -1 {params.basename}_1.fastq.trimmed.gz \
+                  > {log}
+                mv {params.outDir}/logs/salmon_quant.log \
+                  results/{wildcards.sample}/logs
+                rm -r {params.outDir}/logs
+                """)
 
     # Conversion of salmon output sam file to bam, followed by indexing.
     rule salmon_sam:
@@ -441,110 +491,174 @@ rule bamCoverage:
         """
 
 #########################
-#### Quality control ####
+#### Quality control #### End-specific QC
 #########################
 
-# Standard fastqc.
-rule fastqc:
-    input:
-        "results/{sample}/fastq/{sample}_{pair}.fastq.gz"
-    output:
-        html = "results/{sample}/QC/fastqc/{sample}_{pair}_fastqc.html",
-        zip = "results/{sample}/QC/fastqc/{sample}_{pair}_fastqc.zip"
-    log:
-        "results/{sample}/logs/fastqc/fastqc_{pair}.log"
-    shell:
-        """
-        module load fastqc/0.11.8
-        fastqc {input} -q -o . > {log}
-        mv {wildcards.sample}_{wildcards.pair}_fastqc.html \
-          results/{wildcards.sample}/QC/fastqc/
-        mv {wildcards.sample}_{wildcards.pair}_fastqc.zip \
-          results/{wildcards.sample}/QC/fastqc/
-        """
+if config["end"] == "paired":
+    # Standard fastqc.
+    rule fastqc:
+        input:
+            "results/{sample}/fastq/{sample}_{pair}.fastq.gz"
+        output:
+            html = "results/{sample}/QC/fastqc/{sample}_{pair}_fastqc.html",
+            zip = "results/{sample}/QC/fastqc/{sample}_{pair}_fastqc.zip"
+        log:
+            "results/{sample}/logs/fastqc/fastqc_{pair}.log"
+        shell:
+            """
+            module load fastqc/0.11.8
+            fastqc {input} -q -o . > {log}
+            mv {wildcards.sample}_{wildcards.pair}_fastqc.html \
+              results/{wildcards.sample}/QC/fastqc/
+            mv {wildcards.sample}_{wildcards.pair}_fastqc.zip \
+              results/{wildcards.sample}/QC/fastqc/
+            """
 
-# dir needed before execution of the rule
-os.makedirs("results/multiqc_raw", exist_ok=True)
-# This multiqc using just the fastqc results. This serves as a way to quickly
-# view a QC report as the pipeline is still processing.
-rule multiqc_raw:
-    input:
-        expand("results/{sample}/QC/fastqc/{sample}_{pair}_fastqc.zip",
-            sample=samples, pair=["1","2"])
-    output:
-        "results/multiqc_raw/" +config["analysis"]["name"] +"_multiqc_raw.html"
-    log:
-        "results/multiqc_raw/multiqc_raw.log"
-    shell:
-        """
-        module load multiqc/1.7
-        multiqc -n {output} results/*/QC/fastqc > {log}
-        """
+    # dir needed before execution of the rule
+    os.makedirs("results/multiqc_raw", exist_ok=True)
+    # This multiqc using just the fastqc results. This serves as a way to quickly
+    # view a QC report as the pipeline is still processing.
+    rule multiqc_raw:
+        input:
+            expand("results/{sample}/QC/fastqc/{sample}_{pair}_fastqc.zip",
+                sample=samples, pair=["1","2"])
+        output:
+            "results/multiqc_raw/" +config["analysis"]["name"] +"_multiqc_raw.html"
+        log:
+            "results/multiqc_raw/multiqc_raw.log"
+        shell:
+            """
+            module load multiqc/1.7
+            multiqc -n {output} results/*/QC/fastqc > {log}
+            """
 
-# fastq_screen can be used to identify potential contamination within a sample.
-rule fastQscreen:
+    # fastq_screen can be used to identify potential contamination within a sample.
+    rule fastq_screen:
+        input:
+            "results/{sample}/fastq/{sample}_{pair}.fastq.gz"
+        output:
+            "results/{sample}/QC/fastq_screen/{sample}_{pair}_screen.txt"
+        params:
+            aligner = config["fastq_screen"]["aligner"],
+            outDir = "results/{sample}/QC/fastq_screen",
+            subset = config["fastq_screen"]["subset"],
+            conf = config["fastq_screen"]["conf"]
+        log:
+            "results/{sample}/logs/fastq_screen_{pair}.log"
+        shell:
+            """
+            mkdir -p results/{wildcards.sample}/QC/fastq_screen
+            module load bowtie2/2.3.4
+            module load samtools/1.9
+            perl /proj/fureylab/bin/fastq_screen_0.14/fastq_screen \
+              --conf {params.conf} --aligner {params.aligner} \
+              --outdir {params.outDir} --subset {params.subset} {input} > {log}
+            """
+if config["end"] == "single":
+    # Standard fastqc.
+    rule fastqc:
+        input:
+            "results/{sample}/fastq/{sample}_{pair}.fastq.gz"
+        output:
+            html = "results/{sample}/QC/fastqc/{sample}_{pair}_fastqc.html",
+            zip = "results/{sample}/QC/fastqc/{sample}_{pair}_fastqc.zip"
+        log:
+            "results/{sample}/logs/fastqc/fastqc_{pair}.log"
+        shell:
+            """
+            module load fastqc/0.11.8
+            fastqc {input} -q -o . > {log}
+            mv {wildcards.sample}_{wildcards.pair}_fastqc.html \
+              results/{wildcards.sample}/QC/fastqc/
+            mv {wildcards.sample}_{wildcards.pair}_fastqc.zip \
+              results/{wildcards.sample}/QC/fastqc/
+            """
+
+    # dir needed before execution of the rule
+    os.makedirs("results/multiqc_raw", exist_ok=True)
+    # This multiqc using just the fastqc results. This serves as a way to quickly
+    # view a QC report as the pipeline is still processing.
+    rule multiqc_raw:
+        input:
+            expand("results/{sample}/QC/fastqc/{sample}_{pair}_fastqc.zip",
+                sample=samples, pair=["1"])
+        output:
+            "results/multiqc_raw/" +config["analysis"]["name"] +"_multiqc_raw.html"
+        log:
+            "results/multiqc_raw/multiqc_raw.log"
+        shell:
+            """
+            module load multiqc/1.7
+            multiqc -n {output} results/*/QC/fastqc > {log}
+            """
+
+    # fastq_screen can be used to identify potential contamination within a sample.
+    rule fastq_screen:
+        input:
+            "results/{sample}/fastq/{sample}_{pair}.fastq.gz"
+        output:
+            "results/{sample}/QC/fastq_screen/{sample}_{pair}_screen.txt"
+        params:
+            aligner = config["fastq_screen"]["aligner"],
+            outDir = "results/{sample}/QC/fastq_screen",
+            subset = config["fastq_screen"]["subset"],
+            conf = config["fastq_screen"]["conf"]
+        log:
+            "results/{sample}/logs/fastq_screen_{pair}.log"
+        shell:
+            """
+            mkdir -p results/{wildcards.sample}/QC/fastq_screen
+            module load bowtie2/2.3.4
+            module load samtools/1.9
+            perl /proj/fureylab/bin/fastq_screen_0.14/fastq_screen \
+              --conf {params.conf} --aligner {params.aligner} \
+              --outdir {params.outDir} --subset {params.subset} {input} > {log}
+            """
+
+#########################
+#### Quality control #### Post-alignment QC
+#########################
+
+# Running tin score portions of RSeQC.
+rule rseqc_tin:
     input:
-        "results/{sample}/fastq/{sample}_{pair}.fastq.gz"
+        "temp/{sample}.Aligned.sortedByCoord.out.bam"
     output:
-        "results/{sample}/QC/fastQscreen/{sample}_{pair}_screen.txt"
+        "results/{sample}/QC/rseqc/{sample}.Aligned.sortedByCoord.out.summary.txt"
     params:
-        aligner = config["fastQscreen"]["aligner"],
-        outDir = "results/{sample}/QC/fastQscreen",
-        subset = config["fastQscreen"]["subset"],
-        conf = config["fastQscreen"]["conf"]
+        model = config[genomeBuild]["rseqcModel"]
     log:
-        "results/{sample}/logs/fastQscreen_{pair}.log"
+        "results/{sample}/logs/rseqc_tin.log"
     shell:
         """
-        mkdir -p results/{wildcards.sample}/QC/fastQscreen
-        module load bowtie2/2.3.4
-        module load samtools/1.9
-        perl /proj/fureylab/bin/fastq_screen_0.14/fastq_screen \
-          --conf {params.conf} --aligner {params.aligner} \
-          --outdir {params.outDir} --subset {params.subset} {input} > {log}
+        touch temp/{wildcards.sample}.Aligned.sortedByCoord.out.bam.bai
+        module load r/3.6.0
+        module load rseqc/3.0.1
+        mkdir -p results/{wildcards.sample}/QC/rseqc
+        tin.py -i {input} -r {params.model} > {log}
+        mv {wildcards.sample}.Aligned.sortedByCoord* results/{wildcards.sample}/QC/rseqc
         """
 
-if config["runRSeQC"]:
-    # Running tin score portions of RSeQC.
-    rule rseqc_tin:
-        input:
-            "temp/{sample}.Aligned.sortedByCoord.out.bam"
-        output:
-            "results/{sample}/QC/rseqc/{sample}.Aligned.sortedByCoord.out.summary.txt"
-        params:
-            model = config[genomeBuild]["rseqcModel"]
-        log:
-            "results/{sample}/logs/rseqc_tin.log"
-        shell:
-            """
-            touch temp/{wildcards.sample}.Aligned.sortedByCoord.out.bam.bai
-            module load r/3.6.0
-            module load rseqc/3.0.1
-            mkdir -p results/{wildcards.sample}/QC/rseqc
-            tin.py -i {input} -r {params.model} > {log}
-            mv {wildcards.sample}.Aligned.sortedByCoord* results/{wildcards.sample}/QC/rseqc
-            """
-
-    # Running junction saturation portion of RSeQC
-    rule rseqc_junctionSaturation:
-        input:
-            "temp/{sample}.Aligned.sortedByCoord.out.bam"
-        output:
-            "results/{sample}/QC/rseqc/{sample}.junctionSaturation_plot.pdf"
-        params:
-            model = config[genomeBuild]["rseqcModel"]
-        log:
-            "results/{sample}/logs/rseqc_junctionSaturation.log"
-        shell:
-            """
-            touch temp/{wildcards.sample}.Aligned.sortedByCoord.out.bam.bai
-            module load r/3.6.0
-            module load rseqc/3.0.1
-            mkdir -p results/{wildcards.sample}/QC/rseqc
-            junction_saturation.py -i {input} -r {params.model} \
-              -o {wildcards.sample} > {log}
-            mv {wildcards.sample}.junction* results/{wildcards.sample}/QC/rseqc
-            """
+# Running junction saturation portion of RSeQC
+rule rseqc_junctionSaturation:
+    input:
+        "temp/{sample}.Aligned.sortedByCoord.out.bam"
+    output:
+        "results/{sample}/QC/rseqc/{sample}.junctionSaturation_plot.pdf"
+    params:
+        model = config[genomeBuild]["rseqcModel"]
+    log:
+        "results/{sample}/logs/rseqc_junctionSaturation.log"
+    shell:
+        """
+        touch temp/{wildcards.sample}.Aligned.sortedByCoord.out.bam.bai
+        module load r/3.6.0
+        module load rseqc/3.0.1
+        mkdir -p results/{wildcards.sample}/QC/rseqc
+        junction_saturation.py -i {input} -r {params.model} \
+          -o {wildcards.sample} > {log}
+        mv {wildcards.sample}.junction* results/{wildcards.sample}/QC/rseqc
+        """
 
 # Running the bamqc portion of qualimap
 rule QM_bamqc:

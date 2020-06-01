@@ -28,10 +28,10 @@ analysis:
 # At the time of creating the pipeline, all fastq files could be identifed as
 # read1/read2 through "*_RX_*" or "*X.f*q.gz" regexs, where X is 1 or 2.
 samples:
-  - /pine/scr/b/p/bpk/labMeeting/157/
-  - /pine/scr/b/p/bpk/labMeeting/164/
-  - /pine/scr/b/p/bpk/labMeeting/36/
-  - /pine/scr/b/p/bpk/labMeeting/43300/
+  - /proj/fureylab/pipelines/RNA/snakemakeExampleFiles/157/
+  - /proj/fureylab/pipelines/RNA/snakemakeExampleFiles/164/
+  - /proj/fureylab/pipelines/RNA/snakemakeExampleFiles/36/
+  - /proj/fureylab/pipelines/RNA/snakemakeExampleFiles/43300/
 
 # For a run using SRA IDS, use the following example as a guide.
 # samples:

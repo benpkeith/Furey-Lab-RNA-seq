@@ -49,11 +49,6 @@ moveOutFiles: FALSE
 # had run correctly, and then rerun the pipeline using the same submission
 # statement.
 
-runRSeQC: TRUE
-# Run the RSeQC junction saturation module. Although this is useful QC
-# information that will be added to the multiqc output, this can take
-# a couple of hours to run, switch this to false if you're in a rush!
-
 quantification: salmon
 # supports "salmon" and "rsem".
 
@@ -61,9 +56,8 @@ deconvolution: FALSE
 # Runs deconvolution, currently set up for human colon tissue.
 # NOTE: Currently missing the deconvolution rule in pipeline v1.
 
-# pairedEnd: TRUE
-# TRUE if input samples were sequenced paired-end
-# NOTE: Pipeline not currently set up to handle single-end data
+end: "paired"
+# supports "paired" or "single"
 
 countGeneSymbols: "tx2gene_ensembl"
 # supports "tx2gene_ensembl" or "tx2gene_symbol". I recommend using ensembl
@@ -111,7 +105,7 @@ salmon:
 fastqc:
   threads: 1
 
-fastQscreen:
+fastq_screen:
   conf: "bin/fastq_screen.conf"
   subset: 1000000
   aligner: "bowtie2"

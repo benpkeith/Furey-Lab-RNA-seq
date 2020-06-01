@@ -1,7 +1,7 @@
 # Ben Keith
-# Last updated 2020.05.25
+# Last updated 2020.06.01
 # Furey Lab Pipeline 2020
-# Snakemake 1.0
+# Snakemake 1.1
 
 ########################
 #### Initial set up ####
@@ -114,7 +114,7 @@ rule QC:
         expand("results/{sample}/QC/rseqc/{sample}.Aligned.sortedByCoord.out.summary.txt",
             sample=samples),
         expand("results/{sample}/QC/rseqc/{sample}.junctionSaturation_plot.pdf",
-            sample=samples)
+            sample=samples),
         expand("results/{sample}/QC/qualimap/{sample}.rnaseq/qualimapReport.html",
             sample=samples),
         expand("results/{sample}/QC/qualimap/{sample}.bamqc/qualimapReport.html",
@@ -189,7 +189,7 @@ rule cutadapt:
         qualityCutoff = config["cutadapt"]["qualityCutoff"],
         minimumLength = config["cutadapt"]["minimumLength"],
         threads = config["cutadapt"]["threads"],
-        basename = "results/{sample}/fastq/{sample}_"
+        basename = "results/{sample}/fastq/{sample}"
     log:
         "results/{sample}/logs/cutadapt.log"
     run:
@@ -293,7 +293,7 @@ if config["quantification"] == "salmon":
             sjdbOverhang = config["star"]["sjdbOverhang"],
             outFileNamePrefix = "results/{sample}/star/{sample}.",
             featureFile = config[genomeBuild]["featureFile"],
-            basename = "results/{sample}/fastq/{sample}_"
+            basename = "results/{sample}/fastq/{sample}"
         log:
             "results/{sample}/logs/star/star.log"
         run:
@@ -370,7 +370,7 @@ if config["quantification"] == "salmon":
             otherFlags = config["salmon"]["otherFlags"],
             outDir = "results/{sample}/{sample}.salmon",
             tmpDir = "temp/{sample}/salmon",
-            basename = "results/{sample}/fastq/{sample}_"
+            basename = "results/{sample}/fastq/{sample}"
         log:
             "results/{sample}/logs/salmon.log"
         run:

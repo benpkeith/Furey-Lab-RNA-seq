@@ -44,6 +44,15 @@
         "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",
         "jobname": "{rule}"
     },
+    "salmon_sam":
+    {
+        "mem": "50G",
+        "time": "8:0:0",
+        "ntasks": "1",
+        "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
+        "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",
+        "jobname": "{rule}"
+    },
     "multiqc":
     {
         "mem": "10G",
@@ -92,7 +101,7 @@
     "bamCoverage":
     {
         "mem": "100G",
-        "time": "5:0:0",
+        "time": "8:0:0",
         "ntasks": "1",
         "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
         "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",

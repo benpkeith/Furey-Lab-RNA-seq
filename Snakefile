@@ -295,7 +295,7 @@ if config["quantification"] == "salmon":
             sjdbOverhang = config["star"]["sjdbOverhang"],
             outFileNamePrefix = "results/{sample}/star/{sample}.",
             featureFile = config[genomeBuild]["featureFile"],
-            basename = "results/{sample}/fastq/{sample}"
+            basename = "{sample}/fastq/{sample}"
         log:
             "results/{sample}/logs/star/star.log"
         run:
@@ -308,8 +308,8 @@ if config["quantification"] == "salmon":
                   --outSAMtype {params.outSAMtype} --outSAMunmapped Within \
                   --quantMode {params.quantMode} \
                   --outFileNamePrefix {params.outFileNamePrefix} \
-                  --readFilesIn {params.basename}_1.fastq.trimmed.gz \
-                  {params.basename}_2.fastq.trimmed.gz \
+                  --readFilesIn temp/{params.basename}_1.fastq.trimmed.gz \
+                  temp/{params.basename}_2.fastq.trimmed.gz \
                   > {log}
 
                 module load samtools/1.9
@@ -337,7 +337,7 @@ if config["quantification"] == "salmon":
                   --outSAMtype {params.outSAMtype} --outSAMunmapped Within \
                   --quantMode {params.quantMode} \
                   --outFileNamePrefix {params.outFileNamePrefix} \
-                  --readFilesIn {params.basename}_1.fastq.trimmed.gz \
+                  --readFilesIn temp/{params.basename}_1.fastq.trimmed.gz \
                   > {log}
 
                 module load samtools/1.9
@@ -372,7 +372,7 @@ if config["quantification"] == "salmon":
             otherFlags = config["salmon"]["otherFlags"],
             outDir = "results/{sample}/{sample}.salmon",
             tmpDir = "temp/{sample}/salmon",
-            basename = "results/{sample}/fastq/{sample}"
+            basename = "{sample}/fastq/{sample}"
         log:
             "results/{sample}/logs/salmon.log"
         run:
@@ -385,8 +385,8 @@ if config["quantification"] == "salmon":
                   --numBootstraps={params.numBootstraps} --threads {params.threads} \
                   --writeMappings={params.tmpDir}/{wildcards.sample}.aligned.sam \
                   -i {params.index} -o {params.outDir} \
-                  -1 {params.basename}_1.fastq.trimmed.gz \
-                  -2 {params.basename}_2.fastq.trimmed.gz \
+                  -1 temp/{params.basename}_1.fastq.trimmed.gz \
+                  -2 temp/{params.basename}_2.fastq.trimmed.gz \
                   > {log}
                 mv {params.outDir}/logs/salmon_quant.log \
                   results/{wildcards.sample}/logs
@@ -401,7 +401,7 @@ if config["quantification"] == "salmon":
                   --numBootstraps={params.numBootstraps} --threads {params.threads} \
                   --writeMappings={params.tmpDir}/{wildcards.sample}.aligned.sam \
                   -i {params.index} -o {params.outDir} \
-                  -r {params.basename}_1.fastq.trimmed.gz \
+                  -r temp/{params.basename}_1.fastq.trimmed.gz \
                   > {log}
                 mv {params.outDir}/logs/salmon_quant.log \
                   results/{wildcards.sample}/logs

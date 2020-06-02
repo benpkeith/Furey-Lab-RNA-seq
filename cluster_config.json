@@ -71,7 +71,7 @@
         "err": "results/{wildcards.sample}/logs/{rule}_{wildcards.pair}_SLURM.err",
         "jobname": "{rule}"
     },
-    "fastQscreen":
+    "fastq_screen":
     {
         "mem": "10G",
         "time": "5:0:0",
@@ -108,6 +108,24 @@
         "jobname": "{rule}"
     },
     "rseqc_tin":
+    {
+        "mem": "25G",
+        "time": "8:00:0",
+        "ntasks": "1",
+        "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
+        "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",
+        "jobname": "{rule}"
+    },
+    "QM_bamqc":
+    {
+        "mem": "25G",
+        "time": "8:00:0",
+        "ntasks": "1",
+        "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
+        "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",
+        "jobname": "{rule}"
+    },
+    "QM_rnaseq":
     {
         "mem": "25G",
         "time": "8:00:0",

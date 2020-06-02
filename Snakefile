@@ -189,7 +189,7 @@ rule cutadapt:
         qualityCutoff = config["cutadapt"]["qualityCutoff"],
         minimumLength = config["cutadapt"]["minimumLength"],
         threads = config["cutadapt"]["threads"],
-        basename = "results/{sample}/fastq/{sample}"
+        basename = "{sample}/fastq/{sample}"
     log:
         "results/{sample}/logs/cutadapt.log"
     run:
@@ -200,8 +200,10 @@ rule cutadapt:
               --quality-cutoff {params.qualityCutoff} \
               --cores {params.threads} \
               --minimum-length {params.minimumLength} \
-              -o {params.basename}_1.fastq.trimmed.gz -p {params.basename}_2.fastq.trimmed.gz \
-              {params.basename}_1.fastq.gz {params.basename}_2.fastq.gz \
+              -o temp/{params.basename}_1.fastq.trimmed.gz \
+              -p temp/{params.basename}_2.fastq.trimmed.gz \
+              results/{params.basename}_1.fastq.gz \
+              results/{params.basename}_2.fastq.gz \
               > {log}
             """)
         if config["end"] == "single":
@@ -211,8 +213,8 @@ rule cutadapt:
               --quality-cutoff {params.qualityCutoff} \
               --cores {params.threads} \
               --minimum-length {params.minimumLength} \
-              -o {params.basename}_1.fastq.trimmed.gz \
-              {params.basename}_1.fastq.gz \
+              -o temp/{params.basename}_1.fastq.trimmed.gz \
+              results/{params.basename}_1.fastq.gz \
               > {log}
             """)
 
@@ -399,7 +401,7 @@ if config["quantification"] == "salmon":
                   --numBootstraps={params.numBootstraps} --threads {params.threads} \
                   --writeMappings={params.tmpDir}/{wildcards.sample}.aligned.sam \
                   -i {params.index} -o {params.outDir} \
-                  -1 {params.basename}_1.fastq.trimmed.gz \
+                  -r {params.basename}_1.fastq.trimmed.gz \
                   > {log}
                 mv {params.outDir}/logs/salmon_quant.log \
                   results/{wildcards.sample}/logs

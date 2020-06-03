@@ -117,7 +117,6 @@ bamCoverage:
 
 qualimap:
   seqProtocol: "non-strand-specific"
-  rnaseqFlags: "--paired"
   bamqcFlags: "--collect-overlap-pairs"
   javaMemSize: "4G"
 

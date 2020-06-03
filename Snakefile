@@ -671,7 +671,7 @@ rule QM_bamqc:
         "results/{sample}/QC/qualimap/{sample}.bamqc/{sample}.genomeCoverage.txt"
     params:
         outDir = "results/{sample}/QC/qualimap/{sample}.bamqc",
-        outCoverage = "results/{sample}/QC/qualimap/{sample}.bamqc/{sample}.genomeCoverage.txt",
+        tmpDir = "temp/{sample}/bamqc"
         seqProtocol = config["qualimap"]["seqProtocol"],
         featureFile = "temp/*gtf",
         genomeGC = organism,
@@ -684,7 +684,7 @@ rule QM_bamqc:
         module load qualimap/2.2.1
         mkdir -p {params.outDir}
         qualimap bamqc -bam {input} -outdir {params.outDir} \
-          -oc {params.outCoverage} -outformat HTML \
+          -oc {params.tmpDir}/{sample}.genomeCoverage.txt -outformat HTML \
           --sequencing-protocol {params.seqProtocol} \
           --feature-file {params.featureFile} --genome-gc-distr {params.genomeGC} \
           --java-mem-size={params.javaMemSize} {params.otherFlags} > {log}
@@ -706,15 +706,25 @@ rule QM_rnaseq:
         otherFlags = config["qualimap"]["rnaseqFlags"]
     log:
         "results/{sample}/logs/QM_rnaseq.log"
-    shell:
-        """
-        module load qualimap/2.2.1
-        mkdir -p {params.outDir}
-        qualimap rnaseq -bam {input} -outdir {params.outDir} -outformat HTML \
-        -oc {params.outCounts} --sequencing-protocol {params.seqProtocol} \
-        -gtf {params.featureFile} --java-mem-size={params.otherFlags} \
-        {params.otherFlags} > {log}
-        """
+    run:
+        if config["end"] == "paired":
+            shell("""
+            module load qualimap/2.2.1
+            mkdir -p {params.outDir}
+            qualimap rnaseq -bam {input} -outdir {params.outDir} -outformat HTML \
+              -oc {params.outCounts} --sequencing-protocol {params.seqProtocol} \
+              -gtf {params.featureFile} --java-mem-size={params.otherFlags} \
+              --paired > {log}
+            """)
+        if config["end"] == "single":
+            shell("""
+            module load qualimap/2.2.1
+            mkdir -p {params.outDir}
+            qualimap rnaseq -bam {input} -outdir {params.outDir} -outformat HTML \
+              -oc {params.outCounts} --sequencing-protocol {params.seqProtocol} \
+              -gtf {params.featureFile} --java-mem-size={params.otherFlags} \
+              > {log}
+            """)
 
 # dir needed before execution of the rule
 os.makedirs("results/multiqc", exist_ok=True)
@@ -733,7 +743,7 @@ rule multiqc:
     shell:
         """
         module load multiqc/1.7
-        multiqc -n {output.html} -c {params.configFile} . > {log}
+        multiqc -n {output.html} -c {params.configFile} results/ > {log}
         """
 
 #############################

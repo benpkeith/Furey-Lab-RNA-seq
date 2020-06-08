@@ -125,7 +125,7 @@ fastqc:
 
 fastq_screen:
   conf: "bin/fastq_screen.conf"
-  subset: 1000000
+  subset: 500000
   aligner: "bowtie2"
 
 bamCoverage:

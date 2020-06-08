@@ -90,10 +90,10 @@ else:
                 os.system(cmd)
 
 if config["moveOutFiles"]:
-    projectDir = config["projectDir"] + config["analysis"]["projectName"]
+    projectDir = config["projectDir"] + config["analysis"]["projectName"] \
       + today.strftime("%Y_%m_%d")
     os.makedirs(projectDir, exist_ok=True)
-    cmd = "cp -rf results/multiqc " + projectDir
+    cmd = "cp -rf results/multiqc " + projectDir +\
       "; cp -rf results/counts " + projectDir
     os.system(cmd)
 
@@ -593,12 +593,12 @@ if config["end"] == "single":
     # Standard fastqc.
     rule fastqc:
         input:
-            "results/{sample}/fastq/{sample}_{pair}.fastq.gz"
+            "results/{sample}/fastq/{sample}_1.fastq.gz"
         output:
-            html = "results/{sample}/QC/fastqc/{sample}_{pair}_fastqc.html",
-            zip = "results/{sample}/QC/fastqc/{sample}_{pair}_fastqc.zip"
+            html = "results/{sample}/QC/fastqc/{sample}_1_fastqc.html",
+            zip = "results/{sample}/QC/fastqc/{sample}_1_fastqc.zip"
         log:
-            "results/{sample}/logs/fastqc/fastqc_{pair}.log"
+            "results/{sample}/logs/fastqc/fastqc_1.log"
         shell:
             """
             module load fastqc/0.11.8
@@ -615,8 +615,8 @@ if config["end"] == "single":
     # view a QC report as the pipeline is still processing.
     rule multiqc_raw:
         input:
-            expand("results/{sample}/QC/fastqc/{sample}_{pair}_fastqc.zip",
-                sample=samples, pair=["1"])
+            expand("results/{sample}/QC/fastqc/{sample}_1_fastqc.zip",
+                sample=samples)
         output:
             "results/multiqc_raw/" +config["analysis"]["projectName"] +"_multiqc_raw.html"
         log:
@@ -630,16 +630,16 @@ if config["end"] == "single":
     # fastq_screen can be used to identify potential contamination within a sample.
     rule fastq_screen:
         input:
-            "results/{sample}/fastq/{sample}_{pair}.fastq.gz"
+            "results/{sample}/fastq/{sample}_1.fastq.gz"
         output:
-            "results/{sample}/QC/fastq_screen/{sample}_{pair}_screen.txt"
+            "results/{sample}/QC/fastq_screen/{sample}_1_screen.txt"
         params:
             aligner = config["fastq_screen"]["aligner"],
             outDir = "results/{sample}/QC/fastq_screen",
             subset = config["fastq_screen"]["subset"],
             conf = config["fastq_screen"]["conf"]
         log:
-            "results/{sample}/logs/fastq_screen_{pair}.log"
+            "results/{sample}/logs/fastq_screen_1.log"
         shell:
             """
             mkdir -p results/{wildcards.sample}/QC/fastq_screen
@@ -717,7 +717,7 @@ rule QM_bamqc:
         module load qualimap/2.2.1
         mkdir -p {params.outDir}
         qualimap bamqc -bam {input} -outdir {params.outDir} \
-          -oc {params.tmpDir}/{sample}.genomeCoverage.txt -outformat HTML \
+          -oc {params.tmpDir}/{wildcards.sample}.genomeCoverage.txt -outformat HTML \
           --sequencing-protocol {params.seqProtocol} \
           --feature-file {params.featureFile} --genome-gc-distr {params.genomeGC} \
           --java-mem-size={params.javaMemSize} {params.otherFlags} > {log}
@@ -735,8 +735,7 @@ rule QM_rnaseq:
         outCounts = "results/{sample}/QC/qualimap/{sample}.rnaseq/{sample}.computedCounts.txt",
         seqProtocol = config["qualimap"]["seqProtocol"],
         featureFile = "temp/*gtf",
-        javaMemSize = config["qualimap"]["javaMemSize"],
-        otherFlags = config["qualimap"]["rnaseqFlags"]
+        javaMemSize = config["qualimap"]["javaMemSize"]
     log:
         "results/{sample}/logs/QM_rnaseq.log"
     run:

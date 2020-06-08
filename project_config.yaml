@@ -151,7 +151,7 @@ hg19:
   tx2gene_ensembl: /proj/fureylab/genomes/human/hg19_reference/RNA_annotation/tx2gene.GRCh37.ENSEMBL.csv
   tx2gene_symbol: /proj/fureylab/genomes/human/hg19_reference/RNA_annotation/tx2gene.GRCh37.HGNC.csv
 hg38:
-  salmonIndex: /proj/fureylab/genomes/human/hg38_reference/salmon_1.2.0
+  salmonIndex: /proj/fureylab/genomes/human/hg38_reference/salmon_1.2.1
   starIndex: /proj/fureylab/genomes/human/hg38_reference/star_2.7.3a
   rseqcModel: /proj/fureylab/genomes/human/hg38_reference/geneModel/hg38.houseKeepingGenes.bed12
   multiqcConfig: bin/hg38/multiqc_config_hg38.yaml

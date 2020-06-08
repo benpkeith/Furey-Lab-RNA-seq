@@ -616,9 +616,9 @@ if config["end"] == "single":
             """
             module load fastqc/0.11.8
             fastqc {input} -q -o . > {log}
-            mv {wildcards.sample}_{wildcards.pair}_fastqc.html \
+            mv {wildcards.sample}_1_fastqc.html \
               results/{wildcards.sample}/QC/fastqc/
-            mv {wildcards.sample}_{wildcards.pair}_fastqc.zip \
+            mv {wildcards.sample}_1_fastqc.zip \
               results/{wildcards.sample}/QC/fastqc/
             """
 

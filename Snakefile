@@ -209,48 +209,61 @@ if config["useSRA"]:
 ##################################
 
 # Remove adaptors.
-rule cutadapt:
-    input:
-        "results/{sample}/fastq/{sample}_1.fastq.gz"
-    output:
-        "temp/{sample}/fastq/{sample}_1.fastq.trimmed.gz"
-    params:
-        a = config["cutadapt"]["a"],
-        A = config["cutadapt"]["A"],
-        qualityCutoff = config["cutadapt"]["qualityCutoff"],
-        minimumLength = config["cutadapt"]["minimumLength"],
-        threads = config["cutadapt"]["threads"],
-        length = cutadaptTrimLength,
-        basename = "{sample}/fastq/{sample}"
-    log:
-        "results/{sample}/logs/cutadapt.log"
-    run:
-        if config["end"] == "paired":
-            shell("""
-            module load cutadapt/2.9
-            cutadapt -a {params.a} -A {params.A} \
-              --quality-cutoff {params.qualityCutoff} \
-              --cores {params.threads} \
-              --length {params.length} \
-              --minimum-length {params.minimumLength} \
-              -o temp/{params.basename}_1.fastq.trimmed.gz \
-              -p temp/{params.basename}_2.fastq.trimmed.gz \
-              results/{params.basename}_1.fastq.gz \
-              results/{params.basename}_2.fastq.gz \
-              > {log}
-            """)
-        if config["end"] == "single":
-            shell("""
-            module load cutadapt/2.9
-            cutadapt -a {params.a} \
-              --quality-cutoff {params.qualityCutoff} \
-              --cores {params.threads} \
-              --minimum-length {params.minimumLength} \
-              -o temp/{params.basename}_1.fastq.trimmed.gz \
-              results/{params.basename}_1.fastq.gz \
-              > {log}
-            """)
-
+    rule cutadapt:
+        input:
+            "results/{sample}/fastq/{sample}_1.fastq.gz"
+        output:
+            "temp/{sample}/fastq/{sample}_1.fastq.trimmed.gz"
+        params:
+            a = config["cutadapt"]["a"],
+            A = config["cutadapt"]["A"],
+            qualityCutoff = config["cutadapt"]["qualityCutoff"],
+            minimumLength = config["cutadapt"]["minimumLength"],
+            threads = config["cutadapt"]["threads"],
+            length = cutadaptTrimLength,
+            basename = "{sample}/fastq/{sample}"
+        log:
+            "results/{sample}/logs/cutadapt.log"
+        run:
+            if config["adapterTrimming"]:
+                if config["end"] == "paired":
+                    shell("""
+                    module load cutadapt/2.9
+                    cutadapt -a {params.a} -A {params.A} \
+                      --quality-cutoff {params.qualityCutoff} \
+                      --cores {params.threads} \
+                      --length {params.length} \
+                      --minimum-length {params.minimumLength} \
+                      -o temp/{params.basename}_1.fastq.trimmed.gz \
+                      -p temp/{params.basename}_2.fastq.trimmed.gz \
+                      results/{params.basename}_1.fastq.gz \
+                      results/{params.basename}_2.fastq.gz \
+                      > {log}
+                    """)
+                if config["end"] == "single":
+                    shell("""
+                    module load cutadapt/2.9
+                    cutadapt -a {params.a} \
+                      --quality-cutoff {params.qualityCutoff} \
+                      --cores {params.threads} \
+                      --minimum-length {params.minimumLength} \
+                      -o temp/{params.basename}_1.fastq.trimmed.gz \
+                      results/{params.basename}_1.fastq.gz \
+                      > {log}
+                    """)
+            else:
+                if config["end"] == "paired":
+                    shell("""
+                    cp results/{params.basename}_1.fastq.gz \
+                      temp/{params.basename}_1.fastq.trimmed.gz
+                    cp results/{params.basename}_2.fastq.gz \
+                      temp/{params.basename}_2.fastq.trimmed.gz
+                    """)
+                if config["end"] == "single":
+                    shell("""
+                    cp results/{params.basename}_1.fastq.gz \
+                      temp/{params.basename}_1.fastq.trimmed.gz
+                    """)
 ##################################################
 #### Alignment and quantification - STAR/rsem ####
 ##################################################

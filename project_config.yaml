@@ -66,6 +66,8 @@ projectDir: "/proj/fureylab/projects"
 # This parameter will point to where output files such are count matrices and
 # multiQC outputs will be saved for this runs
 
+adapterTrimming: TRUE
+
 quantification: salmon
 # supports "salmon" and "rsem".
 

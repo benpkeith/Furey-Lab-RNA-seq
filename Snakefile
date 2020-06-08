@@ -13,17 +13,41 @@ import re
 import sys
 import os.path
 from os import path
+from datetime import date
 shell.prefix("module load python/2.7.12; ")
 
 configfile: "project_config.yaml"
+configFilename = "project_config.yaml"
+today = date.today()
 
 #genome variables
-configFilename = "project_config.yaml"
-analysisName = config["analysis"]["name"]
+analysisName = config["analysis"]["projectName"]
 organism = config["analysis"]["organism"]
 genomeBuild = config["analysis"]["genomeBuild"]
 
-# Rather than setting rules for file handling and wrangling, it thought it
+#index variables
+# This block of variables handles differences in the processing that will occur
+# due to sequencing read length. Rather than manually changing the paths in the
+# index pointer section of the config, this will change the index paths based on
+# the read length in the config.
+# NOTE: This assumes that the index at the chosen read length is in correct
+# genomes folder (see README for more instructions)
+# NOTE: Star indexing requires a specific overlap parameter which is "readLength - 1".
+# Salmon only requires a "k" parameter related to read legnth, which remains consistent
+# over read lengths of 75. Therefore, we may have more read-specific star index files
+# compared to Salmon.
+readLength = config["analysis"]["readLength"]
+
+starOverhang = readLength - 1
+trimLengths = [50,75,150]
+cutadaptTrimLength = min(trimLengths, key=lambda x:abs(x-readLength))
+
+starIndex = "star_" + str(readLength) + "bp"
+salmonIndex = "salmon_" + str(readLength) + "bp" if readLength < 75 else "salmon_75bp+"
+config[genomeBuild]["starIndex"] = config[genomeBuild]["starIndex"] + "/" + starIndex
+config[genomeBuild]["salmonIndex"] = config[genomeBuild]["salmonIndex"] + "/" + salmonIndex
+
+# Rather than setting rules for file handling and wrangling, I thought it
 # much easier to use a bit of python before executing the pipline.
 # These lines handle setting up fastq directories for either SRA or local files
 # inputs.
@@ -49,11 +73,11 @@ else:
 
         if config["moveOutFiles"]:
             os.makedirs(str(path) + "/snakemakeRNA_" + str(genomeBuild), exist_ok=True)
-            print("Moving final files...")
             cmd = "cp -rf results/" + str(samp) + "/* " + str(path) + \
               "/snakemakeRNA_" + str(genomeBuild)
             os.system(cmd)
-            print("moved sample outputs for " + str(samp) + " to " + str(path))
+            print("moved results outputs for " + str(samp) + " to " + str(path))
+            os.makedirs(str(path) + "/snakemakeRNA_" + str(genomeBuild), exist_ok=True)
 
         for file in glob.glob(str(path + "/fastq/*gz")):
             if "_R1_" in file or re.search("_1\.f*q\.gz$", file):
@@ -66,6 +90,13 @@ else:
                 os.system(cmd)
 
 if config["moveOutFiles"]:
+    projectDir = config["projectDir"] + config["analysis"]["projectName"]
+      + today.strftime("%Y_%m_%d")
+    os.makedirs(projectDir, exist_ok=True)
+    cmd = "cp -rf results/multiqc " + projectDir
+      "; cp -rf results/counts " + projectDir
+    os.system(cmd)
+
     print("Files moved! Exiting...")
     print("The SystemExit message below this is normal!")
     sys.exit()
@@ -86,7 +117,7 @@ if not glob.glob('temp/*gtf'):
 # Target to run whole workflow:
 rule all:
     input:
-        "results/multiqc/" + config["analysis"]["name"] + "_multiqc.html",
+        "results/multiqc/" + config["analysis"]["projectName"] + "_multiqc.html",
         "results/counts/" + analysisName + ".txi.rds",
         expand("results/{sample}/logs/cleanup.log", sample=samples)
 
@@ -123,7 +154,7 @@ rule QC:
             sample=samples),
         expand("results/{sample}/QC/fastq_screen/{sample}_1_screen.txt",
             sample=samples),
-        "results/multiqc_raw/" + config["analysis"]["name"] + "_multiqc_raw.html"
+        "results/multiqc_raw/" + config["analysis"]["projectName"] + "_multiqc_raw.html"
     output:
         touch("temp/QC_complete.flag")
 
@@ -189,6 +220,7 @@ rule cutadapt:
         qualityCutoff = config["cutadapt"]["qualityCutoff"],
         minimumLength = config["cutadapt"]["minimumLength"],
         threads = config["cutadapt"]["threads"],
+        length = cutadaptTrimLength,
         basename = "{sample}/fastq/{sample}"
     log:
         "results/{sample}/logs/cutadapt.log"
@@ -199,6 +231,7 @@ rule cutadapt:
             cutadapt -a {params.a} -A {params.A} \
               --quality-cutoff {params.qualityCutoff} \
               --cores {params.threads} \
+              --length {params.length} \
               --minimum-length {params.minimumLength} \
               -o temp/{params.basename}_1.fastq.trimmed.gz \
               -p temp/{params.basename}_2.fastq.trimmed.gz \
@@ -292,7 +325,7 @@ if config["quantification"] == "salmon":
             quantMode = config["star"]["quantMode"],
             readFilesCommand = config["star"]["readFilesCommand"],
             genomeDir = config[genomeBuild]["starIndex"],
-            sjdbOverhang = config["star"]["sjdbOverhang"],
+            sjdbOverhang = starOverhang,
             outFileNamePrefix = "results/{sample}/star/{sample}.",
             featureFile = config[genomeBuild]["featureFile"],
             basename = "{sample}/fastq/{sample}"
@@ -525,7 +558,7 @@ if config["end"] == "paired":
             expand("results/{sample}/QC/fastqc/{sample}_{pair}_fastqc.zip",
                 sample=samples, pair=["1","2"])
         output:
-            "results/multiqc_raw/" +config["analysis"]["name"] +"_multiqc_raw.html"
+            "results/multiqc_raw/" +config["analysis"]["projectName"] +"_multiqc_raw.html"
         log:
             "results/multiqc_raw/multiqc_raw.log"
         shell:
@@ -585,7 +618,7 @@ if config["end"] == "single":
             expand("results/{sample}/QC/fastqc/{sample}_{pair}_fastqc.zip",
                 sample=samples, pair=["1"])
         output:
-            "results/multiqc_raw/" +config["analysis"]["name"] +"_multiqc_raw.html"
+            "results/multiqc_raw/" +config["analysis"]["projectName"] +"_multiqc_raw.html"
         log:
             "results/multiqc_raw/multiqc_raw.log"
         shell:
@@ -671,7 +704,7 @@ rule QM_bamqc:
         "results/{sample}/QC/qualimap/{sample}.bamqc/{sample}.genomeCoverage.txt"
     params:
         outDir = "results/{sample}/QC/qualimap/{sample}.bamqc",
-        tmpDir = "temp/{sample}/bamqc"
+        tmpDir = "temp/{sample}/bamqc",
         seqProtocol = config["qualimap"]["seqProtocol"],
         featureFile = "temp/*gtf",
         genomeGC = organism,
@@ -734,8 +767,8 @@ rule multiqc:
     input:
         "temp/QC_complete.flag"
     output:
-        html = "results/multiqc/" +config["analysis"]["name"] +"_multiqc.html",
-        data = directory("results/multiqc/" +config["analysis"]["name"] +"_multiqc_data")
+        html = "results/multiqc/" +config["analysis"]["projectName"] +"_multiqc.html",
+        data = directory("results/multiqc/" +config["analysis"]["projectName"] +"_multiqc_data")
     params:
         configFile = config[genomeBuild]["multiqcConfig"]
     log:
@@ -754,7 +787,7 @@ rule multiqc:
 # This rule fixes those names.
 rule name_clean:
     input:
-        "results/multiqc/" + config["analysis"]["name"] + "_multiqc.html",
+        "results/multiqc/" + config["analysis"]["projectName"] + "_multiqc.html",
         "results/{sample}/{sample}.salmon/{sample}.aligned.sorted.bam.bai",
         "results/{sample}/QC/qualimap/{sample}.rnaseq/qualimapReport.html",
         "results/{sample}/QC/qualimap/{sample}.bamqc/qualimapReport.html",

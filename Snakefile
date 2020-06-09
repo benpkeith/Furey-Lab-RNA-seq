@@ -253,7 +253,7 @@ rule cutadapt:
                   results/{params.basename}_1.fastq.gz \
                   > {log}
                 """)
-        else:
+        if not config["adapterTrimming"]:
             if config["end"] == "paired":
                 shell("""
                 cp results/{params.basename}_1.fastq.gz \

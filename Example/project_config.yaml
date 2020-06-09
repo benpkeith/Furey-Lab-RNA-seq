@@ -1,10 +1,9 @@
-# For use with the Furey RNA-seq Snakemake pipeline 1.0
+# For use with the Furey RNA-seq Snakemake pipeline 1.1
 
 # 1. Fill in "analysis" fields
 # 2. Add samples for analysis in "samples" section
 # 3. Double check flags and options
-# 4. Update star's "sjdbOverhang" paramter to match star index.
-# 5. Update salmon's "libType", if needed (https://salmon.readthedocs.io/en/latest/library_type.html). Currently set for automatic detection.
+# 4. Update salmon's "libType", if needed (https://salmon.readthedocs.io/en/latest/library_type.html). Currently set for automatic detection.
 
 ######################################
 #### analysis-specific parameters ####
@@ -50,11 +49,11 @@ moveOutFiles: FALSE
 # NOTE: set to true after running the pipeline, checking that everything
 # had run correctly, and then rerun the pipeline using the same submission
 # statement.
+projectDir: "/proj/fureylab/projects/"
+# This parameter will point to where output files such are count matrices and
+# multiQC outputs will be saved for this runs
 
-runRSeQC: TRUE
-# Run the RSeQC junction saturation module. Although this is useful QC
-# information that will be added to the multiqc output, this can take
-# a couple of hours to run, switch this to false if you're in a rush!
+adapterTrimming: TRUE
 
 quantification: salmon
 # supports "salmon" and "rsem".
@@ -63,9 +62,8 @@ deconvolution: FALSE
 # Runs deconvolution, currently set up for human colon tissue.
 # NOTE: Currently missing the deconvolution rule in pipeline v1.
 
-# pairedEnd: TRUE
-# TRUE if input samples were sequenced paired-end
-# NOTE: Pipeline not currently set up to handle single-end data
+end: "paired"
+# supports "paired" or "single"
 
 countGeneSymbols: "tx2gene_ensembl"
 # supports "tx2gene_ensembl" or "tx2gene_symbol". I recommend using ensembl
@@ -97,7 +95,6 @@ star:
   outSAMtype: "BAM SortedByCoordinate" #SAM
   quantMode: GeneCounts
   readFilesCommand: "gunzip -c"
-  sjdbOverhang: 49
 
 # https://salmon.readthedocs.io/en/latest/salmon.html
 salmon:
@@ -106,16 +103,12 @@ salmon:
   numBootstraps: 10
   otherFlags: "--seqBias --gcBias --validateMappings --writeUnmappedNames"
 
-# rsem:
-#   threads: 8
-#   otherFlags: "--paired-end --star --output-genome-bam --keep-intermediate-files  --star-gzipped-read-file"
-
 fastqc:
   threads: 1
 
-fastQscreen:
+fastq_screen:
   conf: "bin/fastq_screen.conf"
-  subset: 1000000
+  subset: 500000
   aligner: "bowtie2"
 
 bamCoverage:
@@ -125,7 +118,6 @@ bamCoverage:
 
 qualimap:
   seqProtocol: "non-strand-specific"
-  rnaseqFlags: "--paired"
   bamqcFlags: "--collect-overlap-pairs"
   javaMemSize: "4G"
 
@@ -136,16 +128,16 @@ qualimap:
 # Commands use to build these indexes are in the RNA-seq Indexing Pipeline SOP
 
 hg19:
-  salmonIndex: /proj/fureylab/genomes/human/hg19_reference/hg19_salmon_1.1.0
-  starIndex: /proj/fureylab/genomes/human/hg19_reference/hg19_star_2.7.3a
+  salmonIndex: /proj/fureylab/genomes/human/hg19_reference/salmon_1.1.0
+  starIndex: /proj/fureylab/genomes/human/hg19_reference/star_2.7.3a
   rseqcModel: /proj/fureylab/genomes/human/hg19_reference/geneModel/hg19.houseKeepingGenes.bed12
   multiqcConfig: bin/hg19/multiqc_config_hg19.yaml
   featureFile: /proj/fureylab/genomes/human/hg19_reference/RNA_annotation/gencode.v34lift37.annotation.gtf.gz
   tx2gene_ensembl: /proj/fureylab/genomes/human/hg19_reference/RNA_annotation/tx2gene.GRCh37.ENSEMBL.csv
   tx2gene_symbol: /proj/fureylab/genomes/human/hg19_reference/RNA_annotation/tx2gene.GRCh37.HGNC.csv
 hg38:
-  salmonIndex: /proj/fureylab/genomes/human/hg38_reference/hg38_salmon_1.1.0
-  starIndex: /proj/fureylab/genomes/human/hg38_reference/hg38_star_2.7.3a
+  salmonIndex: /proj/fureylab/genomes/human/hg38_reference/salmon_1.2.1
+  starIndex: /proj/fureylab/genomes/human/hg38_reference/star_2.7.3a
   rseqcModel: /proj/fureylab/genomes/human/hg38_reference/geneModel/hg38.houseKeepingGenes.bed12
   multiqcConfig: bin/hg38/multiqc_config_hg38.yaml
   featureFile: /proj/fureylab/genomes/human/hg38_reference/RNA_annotation/gencode.v34.annotation.gtf.gz
@@ -160,15 +152,15 @@ mm9:
   tx2gene_ensembl:
   tx2gene_symbol:
 mm10:
-  salmonIndex:
-  starIndex:
-  rseqcModel:
-  multiqcConfig:
-  featureFile:
-  tx2gene_ensembl:
-  tx2gene_symbol:
+  salmonIndex: /proj/fureylab/genomes/mouse/mm10_reference/salmon_1.2.1
+  starIndex: /proj/fureylab/genomes/mouse/mm10_reference/star_2.7.3a
+  rseqcModel: /proj/fureylab/genomes/mouse/mm10_reference/geneModel/houseKeepingGeneModel.bed12
+  multiqcConfig: bin/mm10/multiqc_config_mm10.yaml
+  featureFile: /proj/fureylab/genomes/mouse/mm10_reference/RNA_annotation/gencode.vM25.annotation.mm10.gtf.gz
+  tx2gene_ensembl: /proj/fureylab/genomes/mouse/mm10_reference/RNA_annotation/tx2gene.mm10.ENSEMBL.csv
+  tx2gene_symbol: /proj/fureylab/genomes/mouse/mm10_reference/RNA_annotation/tx2gene.mm10.HGNC.csv
 CC027:
-  salmonIndex: /proj/fureylab/genomes/mouse/CC/salmon_1.1.0/CC027
+  salmonIndex: /proj/fureylab/genomes/mouse/CC/salmon_1.2.1/CC027
   starIndex: /proj/fureylab/genomes/mouse/CC/star_2.7.3a/CC027
   rseqcModel: /proj/fureylab/genomes/mouse/CC/geneModel/CC027.houseKeepingGenes.bed12
   multiqcConfig: bin/CC027/multiqc_config_CC027.yaml

@@ -1,10 +1,9 @@
-# For use with the Furey RNA-seq Snakemake pipeline 1.0
+# For use with the Furey RNA-seq Snakemake pipeline 1.1
 
 # 1. Fill in "analysis" fields
 # 2. Add samples for analysis in "samples" section
 # 3. Double check flags and options
-# 4. Update star's "sjdbOverhang" paramter to match star index.
-# 5. Update salmon's "libType", if needed (https://salmon.readthedocs.io/en/latest/library_type.html). Currently set for automatic detection.
+# 4. Update salmon's "libType", if needed (https://salmon.readthedocs.io/en/latest/library_type.html). Currently set for automatic detection.
 
 ######################################
 #### analysis-specific parameters ####

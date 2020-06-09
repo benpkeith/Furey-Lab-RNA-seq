@@ -10,7 +10,7 @@
     },
     "cutadapt":
     {
-        "mem": "10G",
+        "mem": "25G",
         "time": "5:0:0",
         "ntasks": "1",
         "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
@@ -28,7 +28,7 @@
     },
     "star":
     {
-        "mem": "35G",
+        "mem": "50G",
         "time": "5:0:0",
         "ntasks": "1",
         "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
@@ -37,8 +37,17 @@
     },
     "salmon":
     {
-        "mem": "10G",
+        "mem": "25G",
         "time": "5:0:0",
+        "ntasks": "1",
+        "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
+        "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",
+        "jobname": "{rule}"
+    },
+    "salmon_sam":
+    {
+        "mem": "50G",
+        "time": "8:0:0",
         "ntasks": "1",
         "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
         "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",
@@ -71,7 +80,7 @@
         "err": "results/{wildcards.sample}/logs/{rule}_{wildcards.pair}_SLURM.err",
         "jobname": "{rule}"
     },
-    "fastQscreen":
+    "fastq_screen":
     {
         "mem": "10G",
         "time": "5:0:0",
@@ -91,8 +100,8 @@
     },
     "bamCoverage":
     {
-        "mem": "10G",
-        "time": "5:0:0",
+        "mem": "100G",
+        "time": "8:0:0",
         "ntasks": "1",
         "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
         "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",
@@ -100,7 +109,7 @@
     },
     "rseqc_junctionSaturation":
     {
-        "mem": "10G",
+        "mem": "25G",
         "time": "8:00:0",
         "ntasks": "1",
         "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
@@ -109,7 +118,25 @@
     },
     "rseqc_tin":
     {
-        "mem": "10G",
+        "mem": "25G",
+        "time": "8:00:0",
+        "ntasks": "1",
+        "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
+        "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",
+        "jobname": "{rule}"
+    },
+    "QM_bamqc":
+    {
+        "mem": "25G",
+        "time": "8:00:0",
+        "ntasks": "1",
+        "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",
+        "err": "results/{wildcards.sample}/logs/{rule}_SLURM.err",
+        "jobname": "{rule}"
+    },
+    "QM_rnaseq":
+    {
+        "mem": "25G",
         "time": "8:00:0",
         "ntasks": "1",
         "output": "results/{wildcards.sample}/logs/{rule}_SLURM.out",

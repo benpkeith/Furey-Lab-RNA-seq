@@ -215,11 +215,34 @@ For each genome build, several files will need to be generated and added to the 
 
 If you're working with hg19, hg38, mm9, or mm10, this has probably already been done. Below if a brief guide to generating these index files.
 
+#### Star and Salmon indexes
+
 Generation of the **salmon index** and **star index** files are covered in the [RNA-seq pipeline indexing SOP](https://sc.unc.edu/dept-fureylab/sops/-/tree/master/Pipelines). If the indexes have already been generates, you just need to provide a path to the directory which contains the index files.
+
+Once indexing has been completed, index directories need to be named carefully to be recognised by the pipeline. For example, in the hg38 build section of the configuration file, the pointer specified for hg38 star indexes is _"/proj/fureylab/genomes/human/hg38_reference/star_2.7.3a"_, which contains three read-specific indexes:
+
+```
+/proj/fureylab/genomes/human/hg38_reference/star_2.7.3a
+├── star_150bp
+├── star_50bp
+└── star_75bp
+```
+
+Based on the input read length, the pipeline will modify the path to fix the necessary read length. The hg38 pointer for salmon, _"/proj/fureylab/genomes/human/hg38_reference/salmon_1.2.1"_, also works and is formatted a similar way;
+
+```
+/proj/fureylab/genomes/human/hg38_reference/salmon_1.2.1
+├── salmon_50bp
+└── salmon_75bp+
+```
+
+Unlike star, which requires a specific index for each read length, salmon is pretty robust of different read lengths. Setting up indexing for salmon does not change when read lengths are greater than 75.
+
+#### Other files
 
 The **rseqcModel** file is a bed file containing gene locations within the genome. These files can be downloaded from the [UCSC table browser](https://genome.ucsc.edu/cgi-bin/hgTables?command=start) or from the [RSeQC site](http://rseqc.sourceforge.net/#download-gene-models-update-on-08-07-2014).
 
-The **multiqcConfig** file is specific to each genomeBuild and should be placed within the bin directory once generated. Use the config file from another genome as a template (e.g _bin/multiqc_config_hg38.yaml_). The only thing you will need to change for a new genome build is the _fastqc_theoretical_gc_ section. If you want this to show up in your final multiqc report, you will need to generate a new _fastqc_theoretical_gc_mm10_txome.txt_ file by follow [Mike Love's instructions](https://github.com/mikelove/fastqcTheoreticalGC). **This file is not necessary, I just like it in my fastqc report for illustration purposes.** If you decide that you do not need to generate this file, remove the _fastqc_config_ section from your multiqc config file.
+The **multiqcConfig** file is specific to each genomeBuild and should be placed within the bin directory once generated. Use the config file from another genome as a template (e.g _bin/multiqc_config_hg38.yaml_). The only thing you will need to change for a new genome build is the _fastqc_theoretical_gc_ section. If you want this to show up in your final multiqc report, you will need to generate a new _fastqc_theoretical_gc_mm10_txome.txt_ file by following [Mike Love's instructions](https://github.com/mikelove/fastqcTheoreticalGC). **This file is not necessary, I just like it in my fastqc report for illustration purposes.** If you decide that you do not need to generate this file, remove the _fastqc_config_ section from your multiqc config file.
 
 The **featureFile** is the gtf file that was used to index your genome of interest. Terry will be able to point you to this file. The only potential pitfall here is that this file will need to be gzipped (if the file ends .gtf, use the gzip command to zip the file).
 

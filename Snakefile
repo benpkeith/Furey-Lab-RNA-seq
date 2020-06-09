@@ -1,5 +1,5 @@
 # Ben Keith
-# Last updated 2020.06.01
+# Last updated 2020.06.09
 # Furey Lab Pipeline 2020
 # Snakemake 1.1
 
@@ -91,11 +91,12 @@ else:
 
 if config["moveOutFiles"]:
     projectDir = config["projectDir"] + config["analysis"]["projectName"] \
-      + today.strftime("%Y_%m_%d")
+      + "_" + today.strftime("%Y_%m_%d")
     os.makedirs(projectDir, exist_ok=True)
     cmd = "cp -rf results/multiqc " + projectDir +\
       "; cp -rf results/counts " + projectDir
     os.system(cmd)
+    print("Moving project files to " + projectDir)
 
     print("Files moved! Exiting...")
     print("The SystemExit message below this is normal!")
@@ -209,62 +210,63 @@ if config["useSRA"]:
 ##################################
 
 # Remove adaptors.
-    rule cutadapt:
-        input:
-            "results/{sample}/fastq/{sample}_1.fastq.gz"
-        output:
-            "temp/{sample}/fastq/{sample}_1.fastq.trimmed.gz"
-        params:
-            a = config["cutadapt"]["a"],
-            A = config["cutadapt"]["A"],
-            qualityCutoff = config["cutadapt"]["qualityCutoff"],
-            minimumLength = config["cutadapt"]["minimumLength"],
-            threads = config["cutadapt"]["threads"],
-            length = cutadaptTrimLength,
-            basename = "{sample}/fastq/{sample}"
-        log:
-            "results/{sample}/logs/cutadapt.log"
-        run:
-            if config["adapterTrimming"]:
-                if config["end"] == "paired":
-                    shell("""
-                    module load cutadapt/2.9
-                    cutadapt -a {params.a} -A {params.A} \
-                      --quality-cutoff {params.qualityCutoff} \
-                      --cores {params.threads} \
-                      --length {params.length} \
-                      --minimum-length {params.minimumLength} \
-                      -o temp/{params.basename}_1.fastq.trimmed.gz \
-                      -p temp/{params.basename}_2.fastq.trimmed.gz \
-                      results/{params.basename}_1.fastq.gz \
-                      results/{params.basename}_2.fastq.gz \
-                      > {log}
-                    """)
-                if config["end"] == "single":
-                    shell("""
-                    module load cutadapt/2.9
-                    cutadapt -a {params.a} \
-                      --quality-cutoff {params.qualityCutoff} \
-                      --cores {params.threads} \
-                      --length {params.length} \
-                      --minimum-length {params.minimumLength} \
-                      -o temp/{params.basename}_1.fastq.trimmed.gz \
-                      results/{params.basename}_1.fastq.gz \
-                      > {log}
-                    """)
-            else:
-                if config["end"] == "paired":
-                    shell("""
-                    cp results/{params.basename}_1.fastq.gz \
-                      temp/{params.basename}_1.fastq.trimmed.gz
-                    cp results/{params.basename}_2.fastq.gz \
-                      temp/{params.basename}_2.fastq.trimmed.gz
-                    """)
-                if config["end"] == "single":
-                    shell("""
-                    cp results/{params.basename}_1.fastq.gz \
-                      temp/{params.basename}_1.fastq.trimmed.gz
-                    """)
+rule cutadapt:
+    input:
+        "results/{sample}/fastq/{sample}_1.fastq.gz"
+    output:
+        "temp/{sample}/fastq/{sample}_1.fastq.trimmed.gz"
+    params:
+        a = config["cutadapt"]["a"],
+        A = config["cutadapt"]["A"],
+        qualityCutoff = config["cutadapt"]["qualityCutoff"],
+        minimumLength = config["cutadapt"]["minimumLength"],
+        threads = config["cutadapt"]["threads"],
+        length = cutadaptTrimLength,
+        basename = "{sample}/fastq/{sample}"
+    log:
+        "results/{sample}/logs/cutadapt.log"
+    run:
+        if config["adapterTrimming"]:
+            if config["end"] == "paired":
+                shell("""
+                module load cutadapt/2.9
+                cutadapt -a {params.a} -A {params.A} \
+                  --quality-cutoff {params.qualityCutoff} \
+                  --cores {params.threads} \
+                  --length {params.length} \
+                  --minimum-length {params.minimumLength} \
+                  -o temp/{params.basename}_1.fastq.trimmed.gz \
+                  -p temp/{params.basename}_2.fastq.trimmed.gz \
+                  results/{params.basename}_1.fastq.gz \
+                  results/{params.basename}_2.fastq.gz \
+                  > {log}
+                """)
+            if config["end"] == "single":
+                shell("""
+                module load cutadapt/2.9
+                cutadapt -a {params.a} \
+                  --quality-cutoff {params.qualityCutoff} \
+                  --cores {params.threads} \
+                  --length {params.length} \
+                  --minimum-length {params.minimumLength} \
+                  -o temp/{params.basename}_1.fastq.trimmed.gz \
+                  results/{params.basename}_1.fastq.gz \
+                  > {log}
+                """)
+        else:
+            if config["end"] == "paired":
+                shell("""
+                cp results/{params.basename}_1.fastq.gz \
+                  temp/{params.basename}_1.fastq.trimmed.gz
+                cp results/{params.basename}_2.fastq.gz \
+                  temp/{params.basename}_2.fastq.trimmed.gz
+                """)
+            if config["end"] == "single":
+                shell("""
+                cp results/{params.basename}_1.fastq.gz \
+                  temp/{params.basename}_1.fastq.trimmed.gz
+                """)
+
 ##################################################
 #### Alignment and quantification - STAR/rsem ####
 ##################################################
@@ -812,15 +814,30 @@ rule name_clean:
         directory("results/{sample}/QC/qualimap/rnaseq"),
         directory("results/{sample}/QC/qualimap/bamqc"),
         touch("temp/{sample}/name_clean_complete.flag")
+    params:
+        snakemakeDir = "snakemakeRNA_" + str(genomeBuild)
     log:
         "results/{sample}/logs/cleanup.log"
-    shell:
-        """
-        mv results/{wildcards.sample}/{wildcards.sample}.salmon \
-          results/{wildcards.sample}/salmon
-        mv results/{wildcards.sample}/QC/qualimap/{wildcards.sample}.rnaseq \
-          results/{wildcards.sample}/QC/qualimap/rnaseq
-        mv results/{wildcards.sample}/QC/qualimap/{wildcards.sample}.bamqc \
-          results/{wildcards.sample}/QC/qualimap/bamqc
-        cp project_config.yaml results/{wildcards.sample}
-        """
+    run:
+        if config["useSRA"]:
+            shell("""
+            mv results/{wildcards.sample}/{wildcards.sample}.salmon \
+              results/{wildcards.sample}/salmon
+            mv results/{wildcards.sample}/QC/qualimap/{wildcards.sample}.rnaseq \
+              results/{wildcards.sample}/QC/qualimap/rnaseq
+            mv results/{wildcards.sample}/QC/qualimap/{wildcards.sample}.bamqc \
+              results/{wildcards.sample}/QC/qualimap/bamqc
+            cp project_config.yaml results/{wildcards.sample}
+            mkdir -p results/{wildcards.sample}/{params.snakemakeDir}
+            cp -rf results/{wildcards.sample}/* {params.snakemakeDir} >/dev/null 2>&1
+            """)
+        else:
+            shell("""
+            mv results/{wildcards.sample}/{wildcards.sample}.salmon \
+              results/{wildcards.sample}/salmon
+            mv results/{wildcards.sample}/QC/qualimap/{wildcards.sample}.rnaseq \
+              results/{wildcards.sample}/QC/qualimap/rnaseq
+            mv results/{wildcards.sample}/QC/qualimap/{wildcards.sample}.bamqc \
+              results/{wildcards.sample}/QC/qualimap/bamqc
+            cp project_config.yaml results/{wildcards.sample}
+            """)

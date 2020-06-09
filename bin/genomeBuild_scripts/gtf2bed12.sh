@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+#Ben Keith
+#Usage: bash gtf2bed12.sh <gtfFile> <houseKeepingFile>
+#
+#NOTES: The gtf file is the gtf file used for build genomic indexes
+# and the houseKeeping file is a bed file containing the locations of
+# house keeping genes through the genome.
 
 gtf_file="$1"
 echo "$gtf_file"

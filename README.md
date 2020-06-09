@@ -1,6 +1,8 @@
 
 # Furey Lab RNA-seq
 
+## Quickstart
+
 This analysis utilises a snakemake pipeline to process RNA-seq data. Once the pipeline has been cloned to the analysis directory (*preferably in scratch space*) using the command:
 
 ```
@@ -21,31 +23,41 @@ sbatch -o snakePipe.log -e snakePipe.err -t 1-0 -J snakePipe --wrap='snakemake -
 -t {cluster.time} -n {cluster.ntasks} -o {cluster.output} -e {cluster.err} \
 -J {cluster.jobname}"'
 ```
+A more complete guide to setting up and running the pipeline is below.
 
 The three main files that may be edited before running the pipeline are:
 
-- **Snakefile**. Tthe snakemake submission script which is automatically called when executing the snakemake command.
+- **Snakefile**. The snakemake submission script which is automatically called when executing the snakemake command.
 - **project_config.yaml**. Contains sample IDs for fetching from sra or processing local files, software parameters, and pointers to files needed to run the pipeline.
 - **cluster_config.json**. The SLURM configuration file. This file contains general rule submission parameters that can be customized for specific rules. For example, the star step of the pipeline requires more that the default 15GB of memory, and so is bumped up to 50GB for the submission of these jobs.
 
-These files are discussed in a little more detail below.
+It's likely that you'll only need to edit the project configuration file.
 
 ## Setting up the pipeline
 
-In most cases, setting up the pipeline involves customising only a few fields the project configuration file, **project_config.yaml**.
+In most cases, setting up the pipeline involves customizing only a few fields the project configuration file, **project_config.yaml**.
 
-- Specifying an analysis name, and checking the analysis organism and genome build matches your analysis. Supported genome builds can be checked in the "Genome Indexes" section at the bottom of the project configuration file.
+- Specifying an analysis name, checking the analysis organism and genome build matches your analysis, and setting the read length. Supported genome builds can be checked in the "Genome Indexes" section at the bottom of the project configuration file.
 - Entering either paths to samples stored locally, or SRA IDs to sample. For SRA IDs, the "useSRA" flag should be changed to "TRUE".
 
 #### Setting up project_config.yaml
 
+##### Analysis-specific parameters
+
+There are multiple fields within the project configuration file that will be specific for each analysis:
+
+- **projectName** will be used in various QC and summary files, and so should be set to something informative for your analysis, e.g. "Crohns_human_colon" or "Crohns_mouse_macrophage". When the pipeline saves various project-specific files to permanent space, a date will automatically be appended to this projectName. **The project name cannot contain any whitespace characters!**
+- **organism** should be set to either "human" or "mouse"
+- **genomeBuild** can be set depending on the build files included in the config files. At the time of writing (June 2020), the pipeline currently supports hg19, hg38, mm10, and CC027. More information is provided at the end of this readme for generating the required files for additional genome builds.
+- **readLength** should match the read lengths in the input sequence files. Samples of different read lengths should be processed separately through independent runs of the pipeline. Genome indexes for specific read lengths (especially for star) will need to be generated before running the pipeline. At the time of writing (June 2020), the pipeline supports hg19 (50bp), hg38 (50bp, 75bp, 150bp), mm10 (50bp, 75bp, 150bp), and CC027 (150bp). If the read length is slightly more than 50bp, 75bp, or 150bp, set this to the one of these and the pipeline will trim reads down to these read lengths during the adapter trimming step.
+
 ##### Samples
 
-Specifying samples for analysis is simple, but should be formatting within the "samples" section of the project configuration file in the following ways:
+Specifying samples for analysis is simple, but should be formatting within the **"samples"** section of the project configuration file in the following ways:
 
 <ins>Local Samples<ins/>
 
-For each sample, there should a path pointing to the base directory for each sample that contains a "fastq" directory. This fastq directory should contain only two gzipped fastq files files, the forward and reverse gzipped fastq files. For example:
+For each sample, there should a path pointing to the base directory for each sample that contains a "fastq" directory. This fastq directory should contain only two gzipped fastq files files, the forward and reverse gzipped fastq files (or just the forward gzipped file in the case of single end data). For example:
 
 ```
 samples:
@@ -77,6 +89,9 @@ In the case of merged fastq files, the two merged should be placed at the top le
         └── A3_CRRA200014404-1a_HV5JWDSXX_L1_2.fq.gz
 ```
 
+Although the pipeline can handle both single and paired-end data, a single analysis should not contain both single and paired-end data.
+
+
 <ins>SRA Samples<ins/>
 
 Samples can also be directly processed from SRA by specifying SRA IDs for each sample. These should be specified within the "samples" section of the project configuration file in the following way:
@@ -87,12 +102,32 @@ samples:
   - SRR5223505
 ```
 
-##### Other flags and potential pitfalls
+**A single run of the pipeline cannot contain both SRA IDs and local file pointers.**
 
-Although most of the flags and software paramters remain the same across analysis, there may be a couple of things that need to change for your specific analysis:
+##### Flags and options
 
-- The _sjdbOverhang_ parameter for star will need to match the star index for a particular genome. This parameter is specified during star indexing, and is an integer calculated "read length - 1". For the majority of our Crohn's disease RNA-seq data, the read length was 50bp, so hg19 and hg38 is indexed for 50bp reads with a sjdbOverhang of 49. On the other hand, CC027 RNA-seq was sequenced using 150bp reads, so sjdbOverhang was set to 149. **If sjdbOverhang is incorrectly set, the star rule will produce an error, halting the pipeline**.
-- The _moveOutFiles_ flag allows you to move all of you output files to the sample directory. **This should be set to FALSE initially**. Once the pipeline has run fully and the output files have been generated, this flag can be set the TRUE and the pipeline can be rerun using the same command as the initial run (examples shown further in the README).
+There are various flags/options that you may need to change depending on how you want to process your data:
+
+- **useSRA** will need to be set to _TRUE_ if the "samples" are set to include SRA IDs.
+
+- **moveOutFiles** will always be set to _FALSE_ on the initial run through the pipeline. Once the pipeline has completed, this can be set to TRUE to move analysis and sample-specific files to permanent space.
+
+- **projectDir** specifies where analysis-specific files will be saved to. A directory will be created here using the _projectName_ option and system date. Probably to leave this as the default unless otherwise instructed by Terry.
+
+- **adapterTrimming** is set to TRUE be default. If set to FALSE, the pipeline will create "trimmed" files to maintain file dependencies, but these are just copies of the input fastq files.
+
+- **quantification**, at the time of writing, can only be set to "salmon". An addition "rsem" option may be added in the future.
+
+- **deconvolution** can be set to TRUE to perform unmix tissue deconvolution. Currently only set up to work on colonic mucosal tissue.
+
+
+- **end** can be set to "paired" or "single" depending on library preparation.
+
+- **countGeneSymbols** dictates whether the count matrix rows are ensembl IDs or gene symbols. Although gene symbols are initially easier to work with, I strongly recommend starting with ensembl IDs to allow you to easily obtain biotype information for each gene. The default is set to "tx2gene_ensembl", but can be changed to "tx2gene_symbol" if the transcript ID to gene ID conversion file has been generated and is in the build section of the project configuration file.
+
+##### Software parameters
+
+Software parameters for all tools used by the pipeline are also included in the pipeline. If you're wondering "do I need to change these?", then you probably do not need to change these.
 
 ## Pipeline dependency rulegraph
 
@@ -136,6 +171,7 @@ sbatch -o snakePipe.log -e snakePipe.err -t 1-0 -J snakePipe --wrap='snakemake -
 -t {cluster.time} -n {cluster.ntasks} -o {cluster.output} -e {cluster.err} \
 -J {cluster.jobname}"'
 ```
+
 4. To check which jobs are running or queued, use the command:
 
 ```
@@ -144,7 +180,7 @@ squeue -u onyen
 
 5. Throughout the running of the pipeline, the _snakePipe.err_ file will contain information about jobs that have completed, or whether jobs have run into errors. If the pipeline has finished completely without errors, the end of the _snakePipe.err_ file will state "X of X steps (100%) done"
 
-6. If you wish to move output files for each sample to permanent space, once the pipeline has change the _moveOutFile_ flag within  the project configuration file to _TRUE_ and run the below command in the same directory as the Snakefile. This will move the results directories for each sample to a directory named "snakemakeRNA_[build]" within the directory specified in the project configuration file.
+6. If you wish to move output files for each sample to permanent space, once the pipeline has change the _moveOutFile_ flag within  the project configuration file to _TRUE_ and run the below command in the same directory as the Snakefile. This will move the results directories for each sample to a directory named "snakemakeRNA_[build]" within the directory specified in the project configuration file and analysis-specific files to the directory specified in the project configuration file under _projectDir_.
 
 ```
 snakemake --printshellcmds --jobs=100 \
@@ -153,12 +189,13 @@ snakemake --printshellcmds --jobs=100 \
 -J {cluster.jobname}"
 ```
 
-**NOTES**
+**NOTES AND POTENTIAL PITFALLS**
 
-- The _moveOutFile_ flag within the project configuration file **should be set to FALSE for the first run through the pipeline**. Once the pipeline has finished, and output files are generated, this flag can be switched to TRUE within the project configuration file and the exact same submission command can be used. This will copy the output directories for each sample to permanent space.
-- The _cluster_config.yaml_ file is currently set up to not utilise threading. Although I found a massive increase in speed during testing when threading, the current queue times for the hov partitions on longleaf are really long. Therefore _ntasks_ is set to 1 for each sample.
-- If you get the error like the one below in any of your log files, this is because a job ran out of memory. You will need to edit the memory requirement for this job in the cluster_config.yaml file. Similar errors can also be produced if a job goes over the supplied time limit (which I've set to 5 hours for each job. I'd be suprised if any job runs longer than 5 hours based on current parameters).
+- The _moveOutFiles_ flag allows you to move all of you output files to the sample directory and save analysis specific files to a directory set by the _projectDir_ parameter. _moveOutFiles_ **should be set to FALSE initially**. Once the pipeline has run fully and the output files have been generated, this flag can be set the TRUE and the pipeline can be rerun using the command specified above in step 6. The _projectDir_ parameter should remain fixed unless otherwise specified by Terry.
+- The _cluster_config.yaml_ file is currently set up to utilise threading on longlead. Although the speed up in processing time is massive when threading, queue times on longleaf can sometimes be an issue. If you're finding jobs are queued in the "hov" partition for longer than you'd like, you can switch the "ntasks" parameter of cutadapt, star, and salmon sections of the _cluster_config.yaml_ file from 4 to 1.
+- If you get the error like the one below in any of your log files, this is because a job ran out of memory. You will need to edit the memory requirement for this job in the _cluster_config.yaml_ file. Similar errors can also be produced if a job goes over the supplied time limit (which I've set to 5 hours for each job. I'd be suprised if any job runs longer than 5 hours based on current parameters).
 - The "name" section of the project_config.yaml **file cannot contain spaces**. This will project errors when it comes to the QC steps of the pipeline.
+- The scratch partition does have some kind of hard limit on usage that you may run into if you're processing a large number of samples (50+). If jobs are halting due to some kind of "slurmstepd" error regarding "out of disk space", you will have to cut your analysis into multiple batches.
 
 ```
 slurmstepd: error: Detected 3 oom-kill event(s) in step 59882717.batch cgroup. Some of your processes may have been killed by the cgroup out-of-memory handler.

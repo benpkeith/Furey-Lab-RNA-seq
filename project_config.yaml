@@ -27,7 +27,7 @@ analysis:
   #supports "human"/"mouse"
 
   genomeBuild: "hg38"
-  #supports hg38 (GRCh38), hg19 (GRCh37), and CC027
+  #supports hg38 (GRCh38), hg19 (GRCh37), mm10, and CC027
 
   readLength: 50
   #length of reads in seq run. Supports 50, 75, 150.
@@ -62,7 +62,7 @@ moveOutFiles: FALSE
 # NOTE: set to true after running the pipeline, checking that everything
 # had run correctly, and then rerun the pipeline using the same submission
 # statement.
-projectDir: "/proj/fureylab/projects"
+projectDir: "/proj/fureylab/projects/"
 # This parameter will point to where output files such are count matrices and
 # multiQC outputs will be saved for this runs
 
@@ -116,10 +116,6 @@ salmon:
   numBootstraps: 10
   otherFlags: "--seqBias --gcBias --validateMappings --writeUnmappedNames"
 
-# rsem:
-#   threads: 8
-#   otherFlags: "--paired-end --star --output-genome-bam --keep-intermediate-files  --star-gzipped-read-file"
-
 fastqc:
   threads: 1
 
@@ -145,8 +141,8 @@ qualimap:
 # Commands use to build these indexes are in the RNA-seq Indexing Pipeline SOP
 
 hg19:
-  salmonIndex: /proj/fureylab/genomes/human/hg19_reference/hg19_salmon_1.1.0
-  starIndex: /proj/fureylab/genomes/human/hg19_reference/hg19_star_2.7.3a
+  salmonIndex: /proj/fureylab/genomes/human/hg19_reference/salmon_1.1.0
+  starIndex: /proj/fureylab/genomes/human/hg19_reference/star_2.7.3a
   rseqcModel: /proj/fureylab/genomes/human/hg19_reference/geneModel/hg19.houseKeepingGenes.bed12
   multiqcConfig: bin/hg19/multiqc_config_hg19.yaml
   featureFile: /proj/fureylab/genomes/human/hg19_reference/RNA_annotation/gencode.v34lift37.annotation.gtf.gz
@@ -169,15 +165,15 @@ mm9:
   tx2gene_ensembl:
   tx2gene_symbol:
 mm10:
-  salmonIndex:
-  starIndex:
-  rseqcModel:
-  multiqcConfig:
-  featureFile:
-  tx2gene_ensembl:
-  tx2gene_symbol:
+  salmonIndex: /proj/fureylab/genomes/mouse/mm10_reference/salmon_1.2.1
+  starIndex: /proj/fureylab/genomes/mouse/mm10_reference/star_2.7.3a
+  rseqcModel: /proj/fureylab/genomes/mouse/mm10_reference/geneModel/houseKeepingGeneModel.bed12
+  multiqcConfig: bin/mm10/multiqc_config_mm10.yaml
+  featureFile: /proj/fureylab/genomes/mouse/mm10_reference/RNA_annotation/gencode.vM25.annotation.mm10.gtf.gz
+  tx2gene_ensembl: /proj/fureylab/genomes/mouse/mm10_reference/RNA_annotation/tx2gene.mm10.ENSEMBL.csv
+  tx2gene_symbol: /proj/fureylab/genomes/mouse/mm10_reference/RNA_annotation/tx2gene.mm10.HGNC.csv
 CC027:
-  salmonIndex: /proj/fureylab/genomes/mouse/CC/salmon_1.1.0/CC027
+  salmonIndex: /proj/fureylab/genomes/mouse/CC/salmon_1.2.1/CC027
   starIndex: /proj/fureylab/genomes/mouse/CC/star_2.7.3a/CC027
   rseqcModel: /proj/fureylab/genomes/mouse/CC/geneModel/CC027.houseKeepingGenes.bed12
   multiqcConfig: bin/CC027/multiqc_config_CC027.yaml

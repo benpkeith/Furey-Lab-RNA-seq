@@ -829,7 +829,7 @@ rule name_clean:
               results/{wildcards.sample}/QC/qualimap/bamqc
             cp project_config.yaml results/{wildcards.sample}
             mkdir -p {params.snakemakeDir}
-            cp -rf results/{wildcards.sample}/* {params.snakemakeDir} >/dev/null 2>&1
+            mv -rf results/{wildcards.sample}/* {params.snakemakeDir} >/dev/null 2>&1
             """)
         else:
             shell("""

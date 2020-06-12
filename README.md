@@ -178,7 +178,7 @@ sbatch -o snakePipe.log -e snakePipe.err -t 1-0 -J snakePipe --wrap='snakemake -
 squeue -u onyen
 ```
 
-5. Throughout the running of the pipeline, the _snakePipe.err_ file will contain information about jobs that have completed, or whether jobs have run into errors. If the pipeline has finished completely without errors, the end of the _snakePipe.err_ file will state "X of X steps (100%) done"
+5. Throughout the running of the pipeline, the _snakePipe.err_ file will contain information about jobs that have completed, or whether jobs have run into errors. If the pipeline has finished completely without errors, the end of the _snakePipe.err_ file will state "X of X steps (100%) done". If the pipeline stops are any point due to an error, you can rerun the pipeline using same commands. The pipeline will pick up from where it stopped. You may want to change the names of the "snakePipe.log" and "snakePipe.err" files so that they do not get overwritten if rerunning the pipeline is necessary!
 
 6. If you wish to move output files for each sample to permanent space, once the pipeline has change the _moveOutFile_ flag within  the project configuration file to _TRUE_ and run the below command in the same directory as the Snakefile. This will move the results directories for each sample to a directory named "snakemakeRNA_[build]" within the directory specified in the project configuration file and analysis-specific files to the directory specified in the project configuration file under _projectDir_.
 

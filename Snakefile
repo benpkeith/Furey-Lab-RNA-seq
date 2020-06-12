@@ -14,7 +14,6 @@ import sys
 import os.path
 from os import path
 from datetime import date
-shell.prefix("module load python/2.7.12; ")
 
 configfile: "project_config.yaml"
 configFilename = "project_config.yaml"
@@ -829,7 +828,7 @@ rule name_clean:
               results/{wildcards.sample}/QC/qualimap/bamqc
             cp project_config.yaml results/{wildcards.sample}
             mkdir -p {params.snakemakeDir}
-            mv -rf results/{wildcards.sample}/* {params.snakemakeDir} >/dev/null 2>&1
+            mv results/{wildcards.sample}/* {params.snakemakeDir} >/dev/null 2>&1
             """)
         else:
             shell("""

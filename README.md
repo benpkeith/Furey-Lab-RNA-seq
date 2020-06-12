@@ -196,6 +196,7 @@ snakemake --printshellcmds --jobs=100 \
 - If you get the error like the one below in any of your log files, this is because a job ran out of memory. You will need to edit the memory requirement for this job in the _cluster_config.yaml_ file. Similar errors can also be produced if a job goes over the supplied time limit (which I've set to 5 hours for each job. I'd be suprised if any job runs longer than 5 hours based on current parameters).
 - The "name" section of the project_config.yaml **file cannot contain spaces**. This will project errors when it comes to the QC steps of the pipeline.
 - The scratch partition does have some kind of hard limit on usage that you may run into if you're processing a large number of samples (50+). If jobs are halting due to some kind of "slurmstepd" error regarding "out of disk space", you will have to cut your analysis into multiple batches.
+- I've found that random failures during the initial fetching of samples from SRA are fairly common. This seems like a network/overload issue that we can't fix. In these cases, when the pipeline shuts down due to an error, the majority of samples will have downloaded. By restarting the pipeline using the same submission command, the pipeline will try to fetch these samples again (which will hopefully work this time!)
 
 ```
 slurmstepd: error: Detected 3 oom-kill event(s) in step 59882717.batch cgroup. Some of your processes may have been killed by the cgroup out-of-memory handler.

@@ -815,7 +815,7 @@ rule name_clean:
         directory("results/{sample}/QC/qualimap/bamqc"),
         touch("temp/{sample}/name_clean_complete.flag")
     params:
-        snakemakeDir = "snakemakeRNA_" + str(genomeBuild)
+        snakemakeDir = "results/{sample}/snakemakeRNA_" + str(genomeBuild)
     log:
         "results/{sample}/logs/cleanup.log"
     run:
@@ -828,7 +828,7 @@ rule name_clean:
             mv results/{wildcards.sample}/QC/qualimap/{wildcards.sample}.bamqc \
               results/{wildcards.sample}/QC/qualimap/bamqc
             cp project_config.yaml results/{wildcards.sample}
-            mkdir -p results/{wildcards.sample}/{params.snakemakeDir}
+            mkdir -p {params.snakemakeDir}
             cp -rf results/{wildcards.sample}/* {params.snakemakeDir} >/dev/null 2>&1
             """)
         else:

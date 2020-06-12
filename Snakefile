@@ -59,6 +59,15 @@ config[genomeBuild]["salmonIndex"] = config[genomeBuild]["salmonIndex"] + "/" + 
 if config["useSRA"]:
     samples = config["samples"]
     [os.makedirs("results/" + str(sample) + "/logs", exist_ok=True) for sample in samples]
+
+    if config["moveOutFiles"]:
+        for sample in samples:
+            os.makedirs("results/" + sample + "/snakemakeRNA_" + str(genomeBuild), exist_ok=True)
+            cmd = "mv results/" + str(samp) + "/* " + \
+              "results/" + sample + "/snakemakeRNA_" + str(genomeBuild)
+            os.system(cmd)
+            print("Results dir for " + sample + " ready for moving")
+
 else:
     samplePaths = config["samples"]
     samplePaths = [re.sub(r"\W+$", "", i) for i in samplePaths]
@@ -70,12 +79,12 @@ else:
     for path in samplePaths:
         samp = str(path.rsplit('/', 1)[1])
 
-        if config["moveOutFiles"] and not config["useSRA"]:
+        if config["moveOutFiles"]:
             os.makedirs(str(path) + "/snakemakeRNA_" + str(genomeBuild), exist_ok=True)
             cmd = "cp -rf results/" + str(samp) + "/* " + str(path) + \
               "/snakemakeRNA_" + str(genomeBuild)
             os.system(cmd)
-            print("moved results outputs for " + str(samp) + " to " + str(path))
+            print("Moved results outputs for " + str(samp) + " to " + str(path))
             os.makedirs(str(path) + "/snakemakeRNA_" + str(genomeBuild), exist_ok=True)
 
         for file in glob.glob(str(path + "/fastq/*gz")):
@@ -817,26 +826,13 @@ rule name_clean:
         snakemakeDir = "results/{sample}/snakemakeRNA_" + str(genomeBuild)
     log:
         "results/{sample}/logs/cleanup.log"
-    run:
-        if config["useSRA"]:
-            shell("""
-            mv results/{wildcards.sample}/{wildcards.sample}.salmon \
-              results/{wildcards.sample}/salmon
-            mv results/{wildcards.sample}/QC/qualimap/{wildcards.sample}.rnaseq \
-              results/{wildcards.sample}/QC/qualimap/rnaseq
-            mv results/{wildcards.sample}/QC/qualimap/{wildcards.sample}.bamqc \
-              results/{wildcards.sample}/QC/qualimap/bamqc
-            cp project_config.yaml results/{wildcards.sample}
-            mkdir -p {params.snakemakeDir}
-            mv results/{wildcards.sample}/* {params.snakemakeDir} >/dev/null 2>&1
-            """)
-        else:
-            shell("""
-            mv results/{wildcards.sample}/{wildcards.sample}.salmon \
-              results/{wildcards.sample}/salmon
-            mv results/{wildcards.sample}/QC/qualimap/{wildcards.sample}.rnaseq \
-              results/{wildcards.sample}/QC/qualimap/rnaseq
-            mv results/{wildcards.sample}/QC/qualimap/{wildcards.sample}.bamqc \
-              results/{wildcards.sample}/QC/qualimap/bamqc
-            cp project_config.yaml results/{wildcards.sample}
-            """)
+    shell:
+        """
+        mv results/{wildcards.sample}/{wildcards.sample}.salmon \
+          results/{wildcards.sample}/salmon
+        mv results/{wildcards.sample}/QC/qualimap/{wildcards.sample}.rnaseq \
+          results/{wildcards.sample}/QC/qualimap/rnaseq
+        mv results/{wildcards.sample}/QC/qualimap/{wildcards.sample}.bamqc \
+          results/{wildcards.sample}/QC/qualimap/bamqc
+        cp project_config.yaml results/{wildcards.sample}
+        """

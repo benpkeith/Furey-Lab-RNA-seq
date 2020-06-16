@@ -63,7 +63,7 @@ if config["useSRA"]:
     if config["moveOutFiles"]:
         for sample in samples:
             os.makedirs("results/" + sample + "/snakemakeRNA_" + str(genomeBuild), exist_ok=True)
-            cmd = "mv results/" + str(samp) + "/* " + \
+            cmd = "mv results/" + str(sample) + "/* " + \
               "results/" + sample + "/snakemakeRNA_" + str(genomeBuild)
             os.system(cmd)
             print("Results dir for " + sample + " ready for moving")

@@ -148,7 +148,7 @@ EnhancedVolcano(res, lab = res$gene_id, pLabellingCutoff = 2E-61,
                 ggsave("volcano_ILCL.pdf", device = "pdf"))
 ```
 
-<img src="plots/volcano_ILCL.png" alt="heatmap" width="400"/>
+<img src="plots/volcano_ILCL.png" alt="heatmap" width="600"/>
 
 Other potential parameters of interest:
 - selectLab - Allows you to pass a vector of genes names to label specific genes
@@ -174,12 +174,14 @@ maplot <- ggmaplot(res, fdr = 0.05, fc = 1, size = 1,
 maplot <- maplot + ylim(c(-10,10)) + ggsave("maplot_ILCL.png", device = "png")
 ```
 
-<img src="plots/maplot_ILCL.png" alt="maplot" width="400"/>
+<img src="plots/maplot_ILCL.png" alt="maplot" width="600"/>
 
 Other potential parameters of interest:
 - label.select - Here I am plotting the top 10 genes in terms of padj (top = 10), but you can select genes by passing them through the parameter label.select. At the time of writing, the version of ggpubr that I am using does not have this parameter available through the bioconductor version of ggpub, so you may need to install ggpubr from the developers github!
 
 ##### PCA
+
+**NOTE** The example I am giving here is using my own custom PCA functions, but a recently released package called PCAtools (referenced at the top of this documentation) by the developer of Complex Heatmap should be used by the lab going forward. If you need to quickly produce a PCA plot, feel free to use the code below.
 
 PCA can be performed as part of your QC as well as a part of the downstream analysis to visualize differences among your samples. PCA well detect large sources of variance within your dataset. With this in mind, a number of things can affect PCA and must be taken into account:
 
@@ -214,7 +216,7 @@ rnaSeqPCA(vsd.pcThres.var, coldata, color = "subtype", \
   savePlot = TRUE, saveTitle = "pca_ILCL", legend = TRUE, pointSize = 5, plotLabs = TRUE)
 
 ```
-<img src="plots/pca_ILCL.png" alt="pcaplot" width="400"/>
+<img src="plots/pca_ILCL.png" alt="pcaplot" width="600"/>
 
 rnaSeqPCA has a number of functions that may be useful:
 - the _proportional_ flag can be set to creat a PCA plot that is proportions to the variation to the axes of interest.
@@ -223,8 +225,39 @@ rnaSeqPCA has a number of functions that may be useful:
 - The _plotly_ flag can be set to TRUE to produce an interactive plots
 - The _returnData_ flag can be set to TRUE and pointed into a variable to save the PC values for each sample, which is useful for performing correlation analyses of PCs and covariates.
 
-##### Heatmaps
+##### Heatmaps and Hierarchical Clustering
+
+The Complex Heatmaps package I use for heatmaps is very well documented. This is a brief example of how to produce a plot using this package, but the documentation for this package should be referenced for all available options and parameters.
 
 ```
+# The starting point here is normalized/transformed data that may have been
+# corrected (if necessary), with a subset of genes taken for clustering.
+# I am used the same 500 genes used in the PCA plot above.
+
+# scale/center data
+z.mat <- t(scale(t(vsd.pcThres.var), center = TRUE, scale=TRUE))
+
+# set gene color scale
+myPalette <- c("blue3", "ivory", "red3")
+myRamp = colorRamp2(c(-2, 0, 2), myPalette)
+
+# add variable of interest color annotations
+ann <- data.frame(Subtype = coldata.W$subtype, Status = coldata.W$status,
+                  Age = coldata.W$ageSampleCollection)
+annColors <- list(Age = colorRamp2(c(14,81), c("#9900cc", "#f8eb01")),
+                     Subtype = c("CL"="#0000FF", "IL"="#F60000", "NIBDcolon"="#000000"),
+                     Status = c("CD"="#0a9618", "NIBDcolon"="#000000"))
+colAnn <- HeatmapAnnotation(df = ann, col = annColors, show_legend = TRUE,
+                            annotation_height = 0.5, show_annotation_name = TRUE, annotation_name_side = "left")
+
+#plotting
+png("heatmap_ILCL.png")
+Heatmap(z.mat, name="z-score", top_annotation=colAnn, col = myRamp,
+        show_row_names = FALSE, show_column_names = FALSE, cluster_rows = TRUE,
+        cluster_columns = TRUE, show_column_dend = TRUE, show_row_dend = TRUE,
+        row_dend_reorder = TRUE, column_dend_reorder = TRUE,
+        clustering_method_rows = "ward.D2", clustering_method_columns = "ward.D2",
+        clustering_distance_rows = "euclidean", clustering_distance_columns = "euclidean")
+dev.off()
 ```
 <img src="plots/heatmap_ILCL.png" alt="heatmap" width="400"/>

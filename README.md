@@ -141,11 +141,11 @@ The dependency rulegraphs for this version of the pipline are shown below:
 
 <ins>Running local files</ins>
 
-<img src="dependency_graphs/Snakemake_graph_local.png" alt="Pipeline rulegraph local" width="400"/>\
+<img src="dependency_graphs/Snakemake_graph_local.png" alt="Pipeline rulegraph local" width="400"/>
 
 <ins>Running files directly from SRA</ins>
 
-<img src="dependency_graphs/Snakemake_graph_sra.png" alt="Pipeline rulegraph sra" width="400"/>\
+<img src="dependency_graphs/Snakemake_graph_sra.png" alt="Pipeline rulegraph sra" width="400"/>
 
 ## Running the pipeline
 

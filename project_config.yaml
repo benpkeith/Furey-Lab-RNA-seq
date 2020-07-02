@@ -14,9 +14,9 @@
 ###
 
 analysis:
-  projectName: "Furey_analysis"
+  projectName: "DATE_Furey_analysis"
   # summary files will be produced using this name.
-  # NOTE: Chose an informative name! e.g.:
+  # NOTE: Date the project (yymmdd) and chose an informative name! e.g.:
   #  - "Crohns_human_colon"
   #  - "ozone_cc"
   #  - "Crohns_mouse_macrophage"
@@ -61,7 +61,7 @@ moveOutFiles: FALSE
 # NOTE: set to true after running the pipeline, checking that everything
 # had run correctly, and then rerun the pipeline using the same submission
 # statement.
-projectDir: "/proj/fureylab/projects/"
+projectDir: "/proj/fureylab/projects/RNA-seq_processing"
 # This parameter will point to where output files such are count matrices and
 # multiQC outputs will be saved for this runs
 

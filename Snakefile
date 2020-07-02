@@ -98,8 +98,7 @@ else:
                 os.system(cmd)
 
 if config["moveOutFiles"]:
-    projectDir = config["projectDir"] + config["analysis"]["projectName"] \
-      + "_" + today.strftime("%Y_%m_%d")
+    projectDir = "%s/%s" % (config["projectDir"], config["analysis"]["projectName"])
     os.makedirs(projectDir, exist_ok=True)
     cmd = "cp -rf results/multiqc " + projectDir +\
       "; cp -rf results/counts " + projectDir
